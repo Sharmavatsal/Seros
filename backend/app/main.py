@@ -16,6 +16,7 @@ from app.api.maintenance import router as maintenance_router
 from app.api.admin_dashboard import router as admin_dashboard_router
 from app.api.reports import router as reports_router
 from app.api.alerts import router as alerts_router
+from app.api.uploads import router as uploads_router
 app = FastAPI(
     title="Business Dashboard API"
 )
@@ -35,6 +36,7 @@ app.include_router(finance_router)
 app.include_router(maintenance_router)
 app.include_router(admin_dashboard_router)
 app.include_router(reports_router)
+app.include_router(uploads_router)
 @app.get("/")
 def root():
     return {
