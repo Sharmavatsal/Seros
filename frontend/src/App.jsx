@@ -1,8 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from './components/layout/MainLayout';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import Login from './pages/Login';
 
 // Placeholder Pages
-const Login = () => <div className="p-8 text-center text-white">Login Page</div>;
 const AdminDashboard = () => <div className="p-8 text-white">Admin Dashboard</div>;
 const RentalDashboard = () => <div className="p-8 text-white">Rental Dashboard</div>;
 const PilingDashboard = () => <div className="p-8 text-white">Piling Dashboard</div>;
@@ -16,13 +17,27 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
         
-        {/* Protected Routes (RBAC will be implemented later) */}
-        <Route path="/" element={<MainLayout />}>
-          <Route index element={<Navigate to="/admin" replace />} />
-          <Route path="admin" element={<AdminDashboard />} />
-          <Route path="rental" element={<RentalDashboard />} />
-          <Route path="piling" element={<PilingDashboard />} />
-          <Route path="om" element={<OMDashboard />} />
+        {/* Protected Routes with RBAC */}
+        <Route path="/" element={<ProtectedRoute />}>
+          <Route element={<MainLayout />}>
+            <Route index element={<Navigate to="/admin" replace />} />
+            
+            <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+              <Route path="admin" element={<AdminDashboard />} />
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={['admin', 'rental_manager']} />}>
+              <Route path="rental" element={<RentalDashboard />} />
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={['admin', 'piling_manager']} />}>
+              <Route path="piling" element={<PilingDashboard />} />
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={['admin', 'om_manager']} />}>
+              <Route path="om" element={<OMDashboard />} />
+            </Route>
+          </Route>
         </Route>
       </Routes>
     </Router>
