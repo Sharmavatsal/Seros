@@ -14,6 +14,7 @@ from app.api.om_tickets import router as om_tickets_router
 from app.api.om_dashboard import router as om_dashboard_router
 from app.api.finance import router as finance_router
 from app.api.maintenance import router as maintenance_router
+from app.api.admin_dashboard import router as admin_dashboard_router
 app = FastAPI(
     title="Business Dashboard API"
 )
@@ -31,6 +32,7 @@ app.include_router(om_tickets_router)
 app.include_router(om_dashboard_router)
 app.include_router(finance_router)
 app.include_router(maintenance_router)
+app.include_router(admin_dashboard_router)
 @app.get("/")
 def root():
     return {
