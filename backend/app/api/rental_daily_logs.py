@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 
 from app.auth.dependencies import get_db
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_rental_access
 
 from app.models.rental_daily_log import RentalDailyLog
 
@@ -24,7 +24,7 @@ router = APIRouter(
 def create_log(
     data: RentalDailyLogCreate,
     db: Session = Depends(get_db),
-    user=Depends(get_current_user)
+    user=Depends(get_rental_access)
 ):
 
     log = RentalDailyLog(
@@ -48,7 +48,7 @@ def create_log(
 @router.get("/")
 def get_logs(
     db: Session = Depends(get_db),
-    user=Depends(get_current_user)
+    user=Depends(get_rental_access)
 ):
 
     return db.query(

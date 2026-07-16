@@ -11,7 +11,7 @@ from app.models.rental_contract import RentalContract
 
 from app.schemas.rental_contract import RentalContractCreate
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_rental_access
 
 
 router = APIRouter(
@@ -35,7 +35,7 @@ def get_db():
 def create_contract(
     data: RentalContractCreate,
     db: Session = Depends(get_db),
-    user=Depends(get_current_user)
+    user=Depends(get_rental_access)
 ):
 
     contract = RentalContract(
@@ -60,7 +60,7 @@ def create_contract(
 @router.get("/")
 def get_contracts(
     db: Session = Depends(get_db),
-    user=Depends(get_current_user)
+    user=Depends(get_rental_access)
 ):
 
     return db.query(

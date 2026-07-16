@@ -66,3 +66,39 @@ def get_current_admin(
         )
 
     return user
+
+def get_rental_access(
+    user: User = Depends(get_current_user)
+):
+
+    if user.role not in ["admin", "rental_manager"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Rental Manager or Admin access required"
+        )
+
+    return user
+
+def get_piling_access(
+    user: User = Depends(get_current_user)
+):
+
+    if user.role not in ["admin", "piling_manager"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Piling Manager or Admin access required"
+        )
+
+    return user
+
+def get_om_access(
+    user: User = Depends(get_current_user)
+):
+
+    if user.role not in ["admin", "om_manager"]:
+        raise HTTPException(
+            status_code=403,
+            detail="O&M Manager or Admin access required"
+        )
+
+    return user

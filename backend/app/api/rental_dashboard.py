@@ -8,7 +8,7 @@ from app.models.asset import Asset
 from app.models.rental_contract import RentalContract
 from app.models.rental_daily_log import RentalDailyLog
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_rental_access
 
 router = APIRouter(
     prefix="/rental-dashboard",
@@ -27,7 +27,7 @@ def get_db():
 @router.get("/summary")
 def dashboard_summary(
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_rental_access)
 ):
 
     total_assets = db.query(Asset).count()
