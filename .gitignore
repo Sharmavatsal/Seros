@@ -25,3 +25,10 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# Node.js
+node_modules/
+dist/
+dist-ssr/
+*.local
+.npm/
