@@ -13,6 +13,7 @@ from app.api.piling_dashboard import router as piling_dashboard_router
 from app.api.om_tickets import router as om_tickets_router
 from app.api.om_dashboard import router as om_dashboard_router
 from app.api.finance import router as finance_router
+from app.api.maintenance import router as maintenance_router
 app = FastAPI(
     title="Business Dashboard API"
 )
@@ -29,6 +30,7 @@ app.include_router(piling_dashboard_router)
 app.include_router(om_tickets_router)
 app.include_router(om_dashboard_router)
 app.include_router(finance_router)
+app.include_router(maintenance_router)
 @app.get("/")
 def root():
     return {
