@@ -4,3 +4,4 @@ from .client import Client
 from .asset import Asset
 from .project import Project
 from .finance import Invoice, Expense
+from .maintenance import MaintenanceSchedule, MaintenanceLog
