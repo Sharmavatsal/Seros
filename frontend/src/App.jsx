@@ -3,11 +3,11 @@ import MainLayout from './components/layout/MainLayout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Login from './pages/Login';
 
-// Placeholder Pages
-const AdminDashboard = () => <div className="p-8 text-white">Admin Dashboard</div>;
-const RentalDashboard = () => <div className="p-8 text-white">Rental Dashboard</div>;
-const PilingDashboard = () => <div className="p-8 text-white">Piling Dashboard</div>;
-const OMDashboard = () => <div className="p-8 text-white">O&M Dashboard</div>;
+import AdminDashboard from './pages/admin/AdminDashboard';
+import RentalDashboard from './pages/rental/RentalDashboard';
+import PilingDashboard from './pages/piling/PilingDashboard';
+import OMDashboard from './pages/om/OMDashboard';
+
 const Unauthorized = () => <div className="p-8 text-center text-alert">Unauthorized Access</div>;
 
 function App() {
