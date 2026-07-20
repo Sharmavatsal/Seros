@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from app.core.database import SessionLocal
 from app.auth.dependencies import get_db, get_piling_access
 from app.models.piling_daily_log import PilingDailyLog
 from app.models.asset import Asset

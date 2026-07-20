@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { DollarSign, Briefcase, Activity, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { DollarSign, Briefcase, Activity } from 'lucide-react';
 import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   PieChart, Pie, Cell, BarChart, Bar, Legend
 } from 'recharts';
 import api from '../../lib/axios';

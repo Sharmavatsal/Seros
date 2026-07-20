@@ -1,4 +1,3 @@
-import React from 'react';
 import { ResponsiveContainer } from 'recharts';
 
 const ChartContainer = ({ title, children, height = 300 }) => {

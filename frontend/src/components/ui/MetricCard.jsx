@@ -1,5 +1,3 @@
-import React from 'react';
-
 const MetricCard = ({ title, value, icon: Icon, trend, trendLabel, trendUpIsGood = true }) => {
   const isUp = trend > 0;
   const trendColor = trendUpIsGood

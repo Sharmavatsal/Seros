@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.api.assets import router as asset_router
 from app.api.test_data import router as test_router
 from app.api.auth import router as auth_router
@@ -19,6 +20,14 @@ from app.api.alerts import router as alerts_router
 from app.api.uploads import router as uploads_router
 app = FastAPI(
     title="Business Dashboard API"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 app.include_router(asset_router)
 app.include_router(test_router)

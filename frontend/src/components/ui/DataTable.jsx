@@ -1,5 +1,3 @@
-import React from 'react';
-
 const DataTable = ({ title, columns, data }) => {
   return (
     <div className="bg-surface border border-border rounded-lg shadow-sm overflow-hidden flex flex-col h-full">

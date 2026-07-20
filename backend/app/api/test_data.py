@@ -1,7 +1,7 @@
-from fastapi import APIRouter # type: ignore
-from sqlalchemy.orm import Session # type: ignore
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
-from app.core.database import SessionLocal
+from app.core.database import get_db
 from app.models.asset import Asset
 from app.models.project import Project
 from app.models.client import Client
@@ -10,9 +10,7 @@ from app.models.vendor import Vendor
 router = APIRouter()
 
 @router.get("/test-data")
-def test_data():
-
-    db: Session = SessionLocal()
+def test_data(db: Session = Depends(get_db)):
 
     return {
         "assets": db.query(Asset).count(),

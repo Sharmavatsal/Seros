@@ -5,7 +5,7 @@ from fastapi import Depends
 
 from sqlalchemy.orm import Session
 
-from app.core.database import SessionLocal
+from app.core.database import get_db
 
 from app.models.rental_contract import RentalContract
 
@@ -18,17 +18,6 @@ router = APIRouter(
     prefix="/rental-contracts",
     tags=["Rental Contracts"]
 )
-
-
-def get_db():
-
-    db = SessionLocal()
-
-    try:
-        yield db
-
-    finally:
-        db.close()
 
 
 @router.post("/")

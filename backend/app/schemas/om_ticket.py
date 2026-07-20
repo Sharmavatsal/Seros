@@ -3,13 +3,19 @@ from typing import Optional
 from datetime import datetime
 
 class OMTicketBase(BaseModel):
-    asset_id: str
+    asset_id: Optional[str] = None
+    project_id: Optional[str] = None
+    ticket_no: Optional[str] = None
+    title: Optional[str] = None
     ticket_type: str = "Breakdown"
     status: str = "Open"
     priority: str = "Medium"
-    sla_breach: bool = False
-    technician_id: Optional[str] = None
+    technician: Optional[str] = None
+    opened_at: Optional[datetime] = None
+    closed_at: Optional[datetime] = None
+    remarks: Optional[str] = None
     description: Optional[str] = None
+    sla_breach: bool = False
 
 class OMTicketCreate(OMTicketBase):
     pass
@@ -17,7 +23,6 @@ class OMTicketCreate(OMTicketBase):
 class OMTicketResponse(OMTicketBase):
     id: str
     created_at: datetime
-    closed_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

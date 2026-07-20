@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from app.core.database import SessionLocal
+from app.core.database import get_db
 
 from app.models.asset import Asset
 from app.models.rental_contract import RentalContract
@@ -14,14 +14,6 @@ router = APIRouter(
     prefix="/rental-dashboard",
     tags=["Rental Dashboard"]
 )
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 @router.get("/summary")

@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/authStore';
 import api from '../lib/axios';
 
 const Login = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,25 +18,21 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // FastAPI OAuth2PasswordRequestForm expects form data
-      const formData = new URLSearchParams();
-      formData.append('username', username);
-      formData.append('password', password);
-
-      const response = await api.post('/auth/login', formData, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+      const response = await api.post('/auth/login', {
+        email,
+        password,
       });
 
-      const { access_token, user } = response.data;
-      setAuth(access_token, user);
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      const { access_token, user, role } = response.data;
+      const fullUser = { ...user, role };
+      setAuth(access_token, fullUser);
 
-      // Redirect based on role
-      if (user.role === 'admin') navigate('/admin');
-      else if (user.role === 'rental_manager') navigate('/rental');
-      else if (user.role === 'piling_manager') navigate('/piling');
-      else if (user.role === 'om_manager') navigate('/om');
+      if (role === 'admin') navigate('/admin');
+      else if (role === 'rental_manager') navigate('/rental');
+      else if (role === 'piling_manager') navigate('/piling');
+      else if (role === 'om_manager') navigate('/om');
       else navigate('/unauthorized');
       
     } catch (err) {
@@ -62,14 +58,14 @@ const Login = () => {
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Username</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
             <input
-              type="text"
+              type="email"
               required
               className="w-full bg-background border border-border rounded-md px-4 py-2 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter your username"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
             />
           </div>
 

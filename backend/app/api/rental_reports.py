@@ -4,7 +4,6 @@ from sqlalchemy import func
 import datetime
 from typing import Optional
 
-from app.core.database import SessionLocal
 from app.auth.dependencies import get_db, get_rental_access
 from app.models.rental_daily_log import RentalDailyLog
 from app.models.asset import Asset

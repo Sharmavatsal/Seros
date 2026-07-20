@@ -1,7 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 
-from app.core.database import SessionLocal
+from app.core.database import get_db
 
 from app.models.user import User
 
@@ -16,9 +16,7 @@ router = APIRouter(
 )
 
 @router.post("/login")
-def login(data: LoginRequest):
-
-    db: Session = SessionLocal()
+def login(data: LoginRequest, db: Session = Depends(get_db)):
 
     user = db.query(User).filter(
         User.email == data.email
