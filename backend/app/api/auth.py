@@ -49,7 +49,9 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
         "role": user.role,
         "user": {
             "id": str(user.id),
-            "name": user.full_name,
-            "email": user.email
+            "username": user.full_name or user.email.split("@")[0],
+            "email": user.email,
+            "role": user.role,
+            "is_active": user.is_active
         }
     }

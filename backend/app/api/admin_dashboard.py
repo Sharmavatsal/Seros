@@ -124,7 +124,21 @@ def get_receivables_aging(db: Session = Depends(get_db), user=Depends(get_curren
         days_90_plus=float(days_90_plus)
     )
 
+@router.get("/metrics", response_model=AdminKPIs)
+def get_metrics(db: Session = Depends(get_db), user=Depends(get_current_admin)):
+    """Alias for /summary — used by frontend AdminDashboard"""
+    return get_summary(db=db, user=user)
+
 @router.get("/users")
 def get_all_users(db: Session = Depends(get_db), user=Depends(get_current_admin)):
     users = db.query(User).all()
-    return [{"id": str(u.id), "username": u.username, "role": u.role} for u in users]
+    return [
+        {
+            "id": str(u.id),
+            "username": u.full_name or (u.email.split("@")[0] if u.email else "Unknown"),
+            "email": u.email or "",
+            "role": u.role or "unknown",
+            "status": "Active" if u.is_active else "Inactive",
+        }
+        for u in users
+    ]
