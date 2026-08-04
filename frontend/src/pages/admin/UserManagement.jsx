@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Users, Plus, X, Search, Shield, Edit2, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, X, Search, Edit2, ToggleLeft, ToggleRight } from 'lucide-react';
 import api from '../../lib/axios';
 import { useToast } from '../../components/ui/ToastContext';
 import { SkeletonTable } from '../../components/ui/Skeletons';

@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import api from '../lib/axios';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -18,16 +20,9 @@ const Login = () => {
     setLoading(true);
 
     try {
-<<<<<<< HEAD
-      const response = await api.post('/auth/login', {
-        email,
-        password,
-=======
-      // Send as JSON object mapping to LoginRequest model
       const response = await api.post('/auth/login', {
         email: email.trim(),
         password: password,
->>>>>>> fd6d00829557414d464dcf8cf5218def2a9269b1
       });
 
       localStorage.removeItem('user');
@@ -65,35 +60,37 @@ const Login = () => {
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-<<<<<<< HEAD
-            <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
-=======
             <label className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
->>>>>>> fd6d00829557414d464dcf8cf5218def2a9269b1
             <input
               type="email"
               required
               className="w-full bg-background border border-border rounded-md px-4 py-2 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-<<<<<<< HEAD
-              placeholder="Enter your email"
-=======
               placeholder="name@company.com"
->>>>>>> fd6d00829557414d464dcf8cf5218def2a9269b1
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
-            <input
-              type="password"
-              required
-              className="w-full bg-background border border-border rounded-md px-4 py-2 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                required
+                className="w-full bg-background border border-border rounded-md px-4 py-2 pr-10 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-white transition-colors"
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
           <button

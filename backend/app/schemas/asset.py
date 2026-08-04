@@ -26,3 +26,5 @@ class AssetCreate(BaseModel):
     status: str
 
     vendor_id: Optional[str] = None
+
+    service_type: Optional[str] = "rental"

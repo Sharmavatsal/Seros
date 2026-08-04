@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { AlertTriangle, Shield, FileText, Wrench, DollarSign, RefreshCw, CheckCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { AlertTriangle, Shield, FileText, Wrench, IndianRupee, RefreshCw, CheckCircle } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../store/authStore';
 import { SkeletonTable } from '../../components/ui/Skeletons';
@@ -48,7 +48,7 @@ const AlertTable = ({ columns, data, emptyMessage = 'No alerts' }) => (
       <thead>
         <tr className="border-b border-border bg-background/40">
           {columns.map((col, i) => (
-            <th key={i} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th key={i} className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               {col.header}
             </th>
           ))}
@@ -57,7 +57,7 @@ const AlertTable = ({ columns, data, emptyMessage = 'No alerts' }) => (
       <tbody className="divide-y divide-border">
         {data.length === 0 ? (
           <tr>
-            <td colSpan={columns.length} className="px-6 py-12 text-center">
+            <td colSpan={columns.length} className="px-3 md:px-6 py-12 text-center">
               <div className="flex flex-col items-center gap-2">
                 <CheckCircle size={32} className="text-healthy/50" />
                 <p className="text-gray-500">{emptyMessage}</p>
@@ -68,7 +68,7 @@ const AlertTable = ({ columns, data, emptyMessage = 'No alerts' }) => (
           data.map((row, ri) => (
             <tr key={ri} className="hover:bg-white/[0.02] transition-colors">
               {columns.map((col, ci) => (
-                <td key={ci} className="px-6 py-3.5 text-gray-300">
+                <td key={ci} className="px-3 md:px-6 py-3 md:py-3.5 text-gray-300">
                   {col.render ? col.render(row) : row[col.accessor]}
                 </td>
               ))}
@@ -85,7 +85,7 @@ const TABS = [
   { key: 'rental', label: 'Rental', icon: FileText, roles: ['admin', 'rental_manager'] },
   { key: 'operations', label: 'Operations', icon: AlertTriangle, roles: ['admin', 'rental_manager', 'piling_manager', 'om_manager'] },
   { key: 'om', label: 'O&M', icon: Wrench, roles: ['admin', 'om_manager'] },
-  { key: 'finance', label: 'Finance', icon: DollarSign, roles: ['admin', 'rental_manager', 'piling_manager', 'om_manager'] },
+  { key: 'finance', label: 'Finance', icon: IndianRupee, roles: ['admin', 'rental_manager', 'piling_manager', 'om_manager'] },
 ];
 
 const AlertsPage = () => {
@@ -155,7 +155,7 @@ const AlertsPage = () => {
   const financeColumns = [
     { header: 'Invoice ID', accessor: 'invoice_id' },
     { header: 'Vertical', render: (r) => <span className="capitalize text-gray-300">{r.vertical}</span> },
-    { header: 'Amount', render: (r) => <span className="font-semibold text-white">${Number(r.amount).toLocaleString()}</span> },
+    { header: 'Amount', render: (r) => <span className="font-semibold text-white">\u20B9{Number(r.amount).toLocaleString()}</span> },
     { header: 'Overdue', render: (r) => <span className="px-2 py-0.5 rounded-full text-xs bg-alert/20 text-alert font-medium">{r.days_overdue} days</span> },
   ];
 
@@ -170,10 +170,10 @@ const AlertsPage = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-white">Alerts & Notifications</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-xl md:text-2xl font-bold text-white">Alerts & Notifications</h1>
+          <p className="text-xs md:text-sm text-gray-500 mt-0.5">
             {totalAlerts > 0 ? (
               <span className="text-warning">{totalAlerts} active alert{totalAlerts !== 1 ? 's' : ''} require attention</span>
             ) : (
@@ -184,7 +184,7 @@ const AlertsPage = () => {
         <button
           onClick={() => fetchAlerts(true)}
           disabled={refreshing}
-          className="flex items-center gap-2 px-4 py-2 bg-surface border border-border text-sm text-gray-300 hover:text-white rounded-lg transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-surface border border-border text-xs md:text-sm text-gray-300 hover:text-white rounded-lg transition-colors disabled:opacity-50 shrink-0"
         >
           <RefreshCw size={15} className={refreshing ? 'animate-spin' : ''} />
           Refresh
@@ -192,34 +192,34 @@ const AlertsPage = () => {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 md:gap-3">
         {visibleTabs.map((tab) => {
           const count = counts[tab.key];
           return (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex flex-col items-start p-4 rounded-lg border transition-all ${
+              className={`flex flex-col items-start p-3 md:p-4 rounded-lg border transition-all ${
                 activeTab === tab.key
                   ? 'bg-primary/10 border-primary/40'
                   : 'bg-surface border-border hover:border-border-light'
               }`}
             >
-              <tab.icon size={18} className={count > 0 ? 'text-warning' : 'text-gray-500'} />
-              <p className="text-xs text-gray-500 mt-2">{tab.label}</p>
-              <p className={`text-2xl font-bold mt-0.5 ${count > 0 ? 'text-white' : 'text-gray-600'}`}>{count}</p>
+              <tab.icon size={16} className={count > 0 ? 'text-warning' : 'text-gray-500'} />
+              <p className="text-[10px] md:text-xs text-gray-500 mt-1.5 md:mt-2">{tab.label}</p>
+              <p className={`text-lg md:text-2xl font-bold mt-0.5 ${count > 0 ? 'text-white' : 'text-gray-600'}`}>{count}</p>
             </button>
           );
         })}
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-0.5 bg-surface border border-border rounded-lg p-1 w-fit">
+      <div className="flex flex-wrap gap-0.5 bg-surface border border-border rounded-lg p-1">
         {visibleTabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-2.5 md:px-3 py-1.5 rounded-md text-xs md:text-sm font-medium transition-all ${
               activeTab === tab.key ? 'bg-primary text-white' : 'text-gray-400 hover:text-white'
             }`}
           >
@@ -236,8 +236,8 @@ const AlertsPage = () => {
 
       {/* Table */}
       <div className="bg-surface border border-border rounded-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-border">
-          <h3 className="text-base font-medium text-white capitalize">
+        <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border">
+          <h3 className="text-sm md:text-base font-medium text-white capitalize">
             {TABS.find(t => t.key === activeTab)?.label} Alerts
           </h3>
         </div>

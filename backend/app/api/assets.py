@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from typing import Optional
 
 from app.auth.dependencies import get_db
 
@@ -16,12 +17,14 @@ router = APIRouter(
 
 @router.get("/")
 def get_assets(
+    service_type: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-
-    assets = db.query(Asset).all()
-
+    q = db.query(Asset)
+    if service_type:
+        q = q.filter(Asset.service_type == service_type)
+    assets = q.all()
     return assets
 
 
@@ -50,7 +53,8 @@ def create_asset(
         monthly_rental=data.monthly_rental,
         location=data.location,
         status=data.status,
-        vendor_id=data.vendor_id
+        vendor_id=data.vendor_id,
+        service_type=data.service_type
     )
 
     try:

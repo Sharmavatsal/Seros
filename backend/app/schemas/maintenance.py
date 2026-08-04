@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional
 from datetime import date, datetime
 
@@ -32,6 +32,11 @@ class MaintenanceLogCreate(MaintenanceLogBase):
 class MaintenanceLogResponse(MaintenanceLogBase):
     id: str
     date_completed: datetime
+
+    @field_validator('cost', mode='before')
+    @classmethod
+    def coerce_cost(cls, v):
+        return 0.0 if v is None else float(v)
 
     class Config:
         from_attributes = True

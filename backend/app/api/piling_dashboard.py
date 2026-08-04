@@ -25,9 +25,9 @@ def get_piling_dashboard_summary(
     piles_per_day = round(float(total_bores) / float(unique_days), 2) if unique_days > 0 else 0
     cost_per_pile = round(float(total_cost) / float(total_bores), 2) if total_bores > 0 else 0
     
-    # Rig Utilization: Active Rigs / Total Rigs
-    total_rigs = db.query(Asset).filter(Asset.category == "Rig").count()
-    active_rigs = db.query(Asset).filter(Asset.category == "Rig", Asset.status == "Active").count()
+    # Rig Utilization: Active Rigs / Total Rigs (scoped to piling service)
+    total_rigs = db.query(Asset).filter(Asset.category == "Rig", Asset.service_type == "piling").count()
+    active_rigs = db.query(Asset).filter(Asset.category == "Rig", Asset.service_type == "piling", Asset.status == "Active").count()
     rig_utilization = round((active_rigs / total_rigs) * 100, 2) if total_rigs > 0 else 0
 
     return {

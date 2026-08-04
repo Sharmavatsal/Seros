@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { DollarSign, TrendingUp, TrendingDown, Plus, X, Search, ChevronDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { IndianRupee, Plus, TrendingUp, TrendingDown, X, Search, ChevronDown } from 'lucide-react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
-  ResponsiveContainer, LineChart, Line, Legend
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip as RechartsTooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../store/authStore';
 import { useToast } from '../../components/ui/ToastContext';
-import { SkeletonKPIRow, SkeletonChart, SkeletonTable } from '../../components/ui/Skeletons';
 import MetricCard from '../../components/ui/MetricCard';
+import { SkeletonKPIRow, SkeletonChart } from '../../components/ui/Skeletons';
 
 const ROLE_VERTICAL = {
   admin: null,
@@ -31,20 +31,18 @@ const CATEGORY_COLORS = {
   other: 'bg-gray-600/20 text-gray-400',
 };
 
-const formatCurrency = (val) => `$${Number(val || 0).toLocaleString()}`;
+const formatCurrency = (val) => `\u20B9${Number(val || 0).toLocaleString()}`;
 
 // ─── Create Invoice Modal ─────────────────────────────────────────────────────
 const InvoiceModal = ({ onClose, onCreated, userVertical }) => {
   const toast = useToast();
   const [form, setForm] = useState({
-    client_id: '',
-    project_id: '',
     vertical: userVertical || 'rental',
     amount: '',
-    issue_date: new Date().toISOString().split('T')[0],
+    invoice_date: new Date().toISOString().split('T')[0],
     due_date: '',
-    status: 'pending',
-    description: '',
+    payment_status: 'pending',
+    invoice_number: '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -54,7 +52,14 @@ const InvoiceModal = ({ onClose, onCreated, userVertical }) => {
     e.preventDefault();
     setSaving(true);
     try {
-      await api.post('/finance/invoices', { ...form, amount: parseFloat(form.amount) });
+      await api.post('/finance/invoices', {
+        vertical: form.vertical,
+        amount: parseFloat(form.amount),
+        invoice_date: form.invoice_date || null,
+        due_date: form.due_date,
+        payment_status: form.payment_status,
+        invoice_number: form.invoice_number || null,
+      });
       toast.success('Invoice created successfully');
       onCreated();
       onClose();
@@ -65,6 +70,7 @@ const InvoiceModal = ({ onClose, onCreated, userVertical }) => {
     }
   };
 
+  const labelCls = 'block text-xs font-medium text-gray-400 mb-1.5';
   const inputCls = 'w-full bg-background border border-border rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-primary transition-colors';
 
   return (
@@ -75,13 +81,13 @@ const InvoiceModal = ({ onClose, onCreated, userVertical }) => {
           <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors"><X size={20} /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Amount ($)</label>
-              <input name="amount" type="number" step="0.01" required className={inputCls} value={form.amount} onChange={handleChange} placeholder="0.00" />
+              <label className={labelCls}>Invoice Number</label>
+              <input name="invoice_number" className={inputCls} value={form.invoice_number} onChange={handleChange} placeholder="e.g. INV-2026-001" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Vertical</label>
+              <label className={labelCls}>Vertical</label>
               <select name="vertical" className={inputCls} value={form.vertical} onChange={handleChange} disabled={!!userVertical}>
                 {!userVertical && <option value="rental">Rental</option>}
                 {!userVertical && <option value="piling">Piling</option>}
@@ -90,25 +96,25 @@ const InvoiceModal = ({ onClose, onCreated, userVertical }) => {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Issue Date</label>
-              <input name="issue_date" type="date" required className={inputCls} value={form.issue_date} onChange={handleChange} />
+              <label className={labelCls}>Amount (₹)</label>
+              <input name="amount" type="number" step="0.01" required className={inputCls} value={form.amount} onChange={handleChange} placeholder="0.00" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Due Date</label>
-              <input name="due_date" type="date" className={inputCls} value={form.due_date} onChange={handleChange} />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Status</label>
-              <select name="status" className={inputCls} value={form.status} onChange={handleChange}>
+              <label className={labelCls}>Payment Status</label>
+              <select name="payment_status" className={inputCls} value={form.payment_status} onChange={handleChange}>
                 <option value="pending">Pending</option>
                 <option value="paid">Paid</option>
                 <option value="overdue">Overdue</option>
               </select>
             </div>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">Description</label>
-            <textarea name="description" rows={2} className={inputCls + ' resize-none'} value={form.description} onChange={handleChange} placeholder="Invoice description..." />
+            <div>
+              <label className={labelCls}>Invoice Date</label>
+              <input name="invoice_date" type="date" required className={inputCls} value={form.invoice_date} onChange={handleChange} />
+            </div>
+            <div>
+              <label className={labelCls}>Due Date</label>
+              <input name="due_date" type="date" required className={inputCls} value={form.due_date} onChange={handleChange} />
+            </div>
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-2 text-sm border border-border text-gray-400 hover:text-white rounded-md transition-colors">Cancel</button>
@@ -125,7 +131,6 @@ const InvoiceModal = ({ onClose, onCreated, userVertical }) => {
 // ─── Finance Page ─────────────────────────────────────────────────────────────
 const FinancePage = () => {
   const user = useAuthStore((s) => s.user);
-  const toast = useToast();
   const userVertical = ROLE_VERTICAL[user?.role] || null;
 
   const [activeTab, setActiveTab] = useState('overview');
@@ -161,14 +166,17 @@ const FinancePage = () => {
     setLoading(true);
     try {
       const params = userVertical ? { vertical: userVertical } : {};
-      const [invRes, expRes, sumRes] = await Promise.all([
+      const [invRes, expRes, sumRes] = await Promise.allSettled([
         api.get('/finance/invoices', { params }),
         api.get('/finance/expenses', { params }),
         api.get('/finance/dashboard', { params }),
       ]);
-      setInvoices(invRes.data.length ? invRes.data : MOCK_INVOICES);
-      setExpenses(expRes.data.length ? expRes.data : MOCK_EXPENSES);
-      setSummary(sumRes.data || MOCK_SUMMARY);
+      if (invRes.status === 'fulfilled') setInvoices(invRes.data.length ? invRes.data : MOCK_INVOICES);
+      else setInvoices(MOCK_INVOICES);
+      if (expRes.status === 'fulfilled') setExpenses(expRes.data.length ? expRes.data : MOCK_EXPENSES);
+      else setExpenses(MOCK_EXPENSES);
+      if (sumRes.status === 'fulfilled') setSummary(sumRes.data || MOCK_SUMMARY);
+      else setSummary(MOCK_SUMMARY);
     } catch {
       setInvoices(MOCK_INVOICES);
       setExpenses(MOCK_EXPENSES);
@@ -178,6 +186,7 @@ const FinancePage = () => {
     }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchAll(); }, []);
 
   const filteredInvoices = invoices.filter((inv) => {
@@ -200,17 +209,17 @@ const FinancePage = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-white">Finance & Revenue</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-xl md:text-2xl font-bold text-white">Finance & Revenue</h1>
+          <p className="text-xs md:text-sm text-gray-500 mt-0.5">
             {userVertical ? `${userVertical.charAt(0).toUpperCase() + userVertical.slice(1)} vertical` : 'All verticals'}
           </p>
         </div>
         {activeTab === 'invoices' && (
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white text-sm font-medium rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-primary hover:bg-primary-dark text-white text-xs md:text-sm font-medium rounded-lg transition-colors shrink-0"
           >
             <Plus size={16} />
             New Invoice
@@ -219,12 +228,12 @@ const FinancePage = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-surface border border-border rounded-lg p-1 w-fit">
+      <div className="flex flex-wrap gap-1 bg-surface border border-border rounded-lg p-1">
         {tabs.map((t) => (
           <button
             key={t}
             onClick={() => setActiveTab(t)}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium capitalize transition-all ${activeTab === t ? 'bg-primary text-white' : 'text-gray-400 hover:text-white'}`}
+            className={`px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-medium capitalize transition-all ${activeTab === t ? 'bg-primary text-white' : 'text-gray-400 hover:text-white'}`}
           >
             {t}
           </button>
@@ -242,20 +251,20 @@ const FinancePage = () => {
           {activeTab === 'overview' && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <MetricCard title="Total Revenue (YTD)" value={formatCurrency(summary?.total_revenue)} icon={DollarSign} trend={12.5} trendLabel="vs last year" />
+                <MetricCard title="Total Revenue (YTD)" value={formatCurrency(summary?.total_revenue)} icon={IndianRupee} trend={12.5} trendLabel="vs last year" />
                 <MetricCard title="Outstanding Receivables" value={formatCurrency(summary?.outstanding_receivables)} icon={TrendingDown} trend={-8.3} trendLabel="vs last month" trendUpIsGood={false} />
                 <MetricCard title="Total Expenses (YTD)" value={formatCurrency(summary?.total_expenses)} icon={TrendingUp} trend={5.2} trendLabel="vs last month" trendUpIsGood={false} />
               </div>
 
-              <div className="bg-surface border border-border rounded-lg p-6 shadow-sm">
-                <h3 className="text-lg font-medium text-white mb-6">Revenue vs Expenses</h3>
-                <div style={{ height: 320 }}>
+              <div className="bg-surface border border-border rounded-lg p-4 md:p-6 shadow-sm">
+                <h3 className="text-sm md:text-lg font-medium text-white mb-4 md:mb-6">Revenue vs Expenses</h3>
+                <div style={{ height: 260 }} className="md:min-h-[320px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={revenueChartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#27272A" vertical={false} />
                       <XAxis dataKey="month" stroke="#A1A1AA" tick={{ fill: '#A1A1AA' }} axisLine={false} tickLine={false} />
-                      <YAxis stroke="#A1A1AA" tick={{ fill: '#A1A1AA' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v / 1000}k`} />
-                      <RechartsTooltip contentStyle={{ backgroundColor: '#1E1E1E', borderColor: '#27272A', color: '#FFF' }} formatter={(v) => `$${v.toLocaleString()}`} cursor={{ fill: '#27272A', opacity: 0.3 }} />
+                      <YAxis stroke="#A1A1AA" tick={{ fill: '#A1A1AA' }} axisLine={false} tickLine={false} tickFormatter={(v) => `\u20B9${v / 1000}k`} />
+                      <RechartsTooltip contentStyle={{ backgroundColor: '#1E1E1E', borderColor: '#27272A', color: '#FFF' }} formatter={(v) => `\u20B9${v.toLocaleString()}`} cursor={{ fill: '#27272A', opacity: 0.3 }} />
                       <Legend wrapperStyle={{ color: '#A1A1AA' }} />
                       <Bar dataKey="revenue" name="Revenue" fill="#10B981" radius={[4, 4, 0, 0]} />
                       <Bar dataKey="expenses" name="Expenses" fill="#EF4444" radius={[4, 4, 0, 0]} />
@@ -265,15 +274,15 @@ const FinancePage = () => {
               </div>
 
               {/* Profitability line */}
-              <div className="bg-surface border border-border rounded-lg p-6 shadow-sm">
-                <h3 className="text-lg font-medium text-white mb-6">Net Profitability Trend</h3>
-                <div style={{ height: 260 }}>
+              <div className="bg-surface border border-border rounded-lg p-4 md:p-6 shadow-sm">
+                <h3 className="text-sm md:text-lg font-medium text-white mb-4 md:mb-6">Net Profitability Trend</h3>
+                <div style={{ height: 220 }} className="md:min-h-[260px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={revenueChartData.map(d => ({ ...d, profit: d.revenue - d.expenses }))} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#27272A" vertical={false} />
                       <XAxis dataKey="month" stroke="#A1A1AA" tick={{ fill: '#A1A1AA' }} axisLine={false} tickLine={false} />
-                      <YAxis stroke="#A1A1AA" tick={{ fill: '#A1A1AA' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v / 1000}k`} />
-                      <RechartsTooltip contentStyle={{ backgroundColor: '#1E1E1E', borderColor: '#27272A', color: '#FFF' }} formatter={(v) => `$${v.toLocaleString()}`} />
+                      <YAxis stroke="#A1A1AA" tick={{ fill: '#A1A1AA' }} axisLine={false} tickLine={false} tickFormatter={(v) => `\u20B9${v / 1000}k`} />
+                      <RechartsTooltip contentStyle={{ backgroundColor: '#1E1E1E', borderColor: '#27272A', color: '#FFF' }} formatter={(v) => `\u20B9${v.toLocaleString()}`} />
                       <Line type="monotone" dataKey="profit" name="Net Profit" stroke="#3B82F6" strokeWidth={3} dot={{ r: 4, fill: '#3B82F6' }} activeDot={{ r: 6 }} />
                     </LineChart>
                   </ResponsiveContainer>
@@ -286,8 +295,8 @@ const FinancePage = () => {
           {activeTab === 'invoices' && (
             <div className="space-y-4">
               {/* Filters */}
-              <div className="flex gap-3">
-                <div className="relative flex-1 max-w-sm">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                <div className="relative flex-1 max-w-full sm:max-w-sm">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                   <input
                     className="w-full bg-surface border border-border rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary transition-colors"
@@ -312,39 +321,39 @@ const FinancePage = () => {
               </div>
 
               <div className="bg-surface border border-border rounded-lg overflow-hidden">
-                <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-                  <h3 className="text-base font-medium text-white">Invoices</h3>
-                  <span className="text-xs text-gray-500">{filteredInvoices.length} records</span>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border bg-background/40">
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vertical</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Issue Date</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                      </tr>
-                    </thead>
+              <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border flex items-center justify-between">
+                <h3 className="text-sm md:text-base font-medium text-white">Invoices</h3>
+                <span className="text-xs text-gray-500">{filteredInvoices.length} records</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-background/40">
+                      <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice</th>
+                      <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vertical</th>
+                      <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                      <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Issue Date</th>
+                      <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+                      <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                    </tr>
+                  </thead>
                     <tbody className="divide-y divide-border">
                       {filteredInvoices.length === 0 ? (
                         <tr><td colSpan={7} className="px-6 py-10 text-center text-gray-500">No invoices found</td></tr>
                       ) : filteredInvoices.map((inv, i) => (
                         <tr key={inv.id || i} className="hover:bg-white/[0.02] transition-colors">
-                          <td className="px-6 py-4 font-mono text-xs text-gray-300">{inv.id}</td>
-                          <td className="px-6 py-4"><span className="capitalize text-gray-300">{inv.vertical}</span></td>
-                          <td className="px-6 py-4 font-semibold text-white">{formatCurrency(inv.amount)}</td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${STATUS_COLORS[inv.status] || 'bg-gray-700 text-gray-400'}`}>
+                          <td className="px-3 md:px-6 py-3 md:py-4 font-mono text-xs text-gray-300">{inv.id}</td>
+                          <td className="px-3 md:px-6 py-3 md:py-4"><span className="capitalize text-gray-300">{inv.vertical}</span></td>
+                          <td className="px-3 md:px-6 py-3 md:py-4 font-semibold text-white">{formatCurrency(inv.amount)}</td>
+                          <td className="px-3 md:px-6 py-3 md:py-4">
+                            <span className={`px-1.5 md:px-2 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium capitalize ${STATUS_COLORS[inv.status] || 'bg-gray-700 text-gray-400'}`}>
                               {inv.status}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-gray-400">{inv.issue_date}</td>
-                          <td className="px-6 py-4 text-gray-400">{inv.due_date || '—'}</td>
-                          <td className="px-6 py-4 text-gray-400 max-w-[200px] truncate">{inv.description || '—'}</td>
+                          <td className="px-3 md:px-6 py-3 md:py-4 text-gray-400">{inv.issue_date}</td>
+                          <td className="px-3 md:px-6 py-3 md:py-4 text-gray-400">{inv.due_date || '—'}</td>
+                          <td className="px-3 md:px-6 py-3 md:py-4 text-gray-400 max-w-[120px] md:max-w-[200px] truncate">{inv.description || '—'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -357,35 +366,35 @@ const FinancePage = () => {
           {/* Expenses Tab */}
           {activeTab === 'expenses' && (
             <div className="bg-surface border border-border rounded-lg overflow-hidden">
-              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-                <h3 className="text-base font-medium text-white">Expenses</h3>
+              <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border flex items-center justify-between">
+                <h3 className="text-sm md:text-base font-medium text-white">Expenses</h3>
                 <span className="text-xs text-gray-500">{expenses.length} records</span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border bg-background/40">
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vertical</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                      <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                      <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                      <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                      <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vertical</th>
+                      <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
                     {expenses.map((exp, i) => (
                       <tr key={exp.id || i} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="px-6 py-4 font-mono text-xs text-gray-300">{exp.id}</td>
-                        <td className="px-6 py-4">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${CATEGORY_COLORS[exp.category] || 'bg-gray-700 text-gray-400'}`}>
+                        <td className="px-3 md:px-6 py-3 md:py-4 font-mono text-xs text-gray-300">{exp.id}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-4">
+                          <span className={`px-1.5 md:px-2 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium capitalize ${CATEGORY_COLORS[exp.category] || 'bg-gray-700 text-gray-400'}`}>
                             {exp.category}
                           </span>
                         </td>
-                        <td className="px-6 py-4 font-semibold text-white">{formatCurrency(exp.amount)}</td>
-                        <td className="px-6 py-4 capitalize text-gray-400">{exp.vertical}</td>
-                        <td className="px-6 py-4 text-gray-400">{exp.date}</td>
-                        <td className="px-6 py-4 text-gray-400 max-w-[200px] truncate">{exp.description || '—'}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-4 font-semibold text-white">{formatCurrency(exp.amount)}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-4 capitalize text-gray-400">{exp.vertical}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-4 text-gray-400">{exp.date}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-4 text-gray-400 max-w-[120px] md:max-w-[200px] truncate">{exp.description || '—'}</td>
                       </tr>
                     ))}
                   </tbody>

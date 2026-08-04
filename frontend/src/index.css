@@ -95,3 +95,29 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 8px 30px rgba(59, 130, 246, 0.08);
 }
+
+/* ─── Mobile Safe Area ──────────────────────────────── */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ─── Sidebar overlay for mobile ────────────────────── */
+.sidebar-overlay {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* ─── Prevent text size adjustment on mobile ──────── */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ─── Better touch targets for mobile ─────────────── */
+@media (max-width: 767px) {
+  button, a, select, input {
+    cursor: default;
+  }
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}

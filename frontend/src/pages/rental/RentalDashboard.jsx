@@ -1,16 +1,8 @@
-<<<<<<< HEAD
 import { useEffect, useState } from 'react';
-import { Activity, FileText, DollarSign, Fuel, AlertTriangle } from 'lucide-react';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
-  LineChart, Line
-=======
-import React, { useEffect, useState } from 'react';
-import { Activity, FileText, DollarSign, Fuel, AlertTriangle, Wrench } from 'lucide-react';
+import { Activity, FileText, IndianRupee, Fuel, AlertTriangle } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   LineChart, Line, RadialBarChart, RadialBar, PolarAngleAxis
->>>>>>> fd6d00829557414d464dcf8cf5218def2a9269b1
 } from 'recharts';
 import api from '../../lib/axios';
 import MetricCard from '../../components/ui/MetricCard';
@@ -95,8 +87,9 @@ const RentalDashboard = () => {
     const fetch = async () => {
       setLoading(true);
       try {
-        const [dashRes, alertRes] = await Promise.allSettled([
+        const [dashRes, trendRes, alertRes] = await Promise.allSettled([
           api.get('/rental-dashboard/summary'),
+          api.get('/rental-dashboard/trends'),
           api.get('/alerts/'),
         ]);
 
@@ -107,18 +100,30 @@ const RentalDashboard = () => {
 
         let liveAlerts = MOCK_DATA.alerts;
         if (alertRes.status === 'fulfilled') {
-          const a = alertRes.value.data;
-          const combined = [
-            ...(a.equipment_alerts || []).map(x => ({ id: x.asset_id, type: 'Warning', message: `${x.asset_code} ${x.alert_type} expires in ${x.days_remaining} days` })),
-            ...(a.rental_alerts || []).map(x => ({ id: x.contract_id, type: 'Alert', message: `Contract ${x.contract_no} (${x.client_name}) expires in ${x.days_remaining} days` })),
-            ...(a.operations_alerts || []).map(x => ({ id: x.asset_id, type: 'Alert', message: `${x.asset_code} breakdown — ${x.remarks}` })),
-          ];
-          if (combined.length) liveAlerts = combined;
+          const a = alertRes.value?.data;
+          if (a) {
+            const combined = [
+              ...(a.equipment_alerts || []).map(x => ({ id: x.asset_id, type: 'Warning', message: `${x.asset_code} ${x.alert_type} expires in ${x.days_remaining} days` })),
+              ...(a.rental_alerts || []).map(x => ({ id: x.contract_id, type: 'Alert', message: `Contract ${x.contract_no} (${x.client_name}) expires in ${x.days_remaining} days` })),
+              ...(a.operations_alerts || []).map(x => ({ id: x.asset_id, type: 'Alert', message: `${x.asset_code} breakdown — ${x.remarks}` })),
+            ];
+            if (combined.length) liveAlerts = combined;
+          }
         }
 
-        setData({ ...MOCK_DATA, active_contracts: activeContracts, alerts: liveAlerts });
-      } catch {
-        setData(MOCK_DATA);
+        const trendData = trendRes.status === 'fulfilled' ? trendRes.value.data : {};
+
+        setData({
+          ...MOCK_DATA,
+          utilization_pct: dashRes.status === 'fulfilled' ? (dashRes.value.data.equipment_utilization_percent ?? MOCK_DATA.utilization_pct) : MOCK_DATA.utilization_pct,
+          monthly_revenue: dashRes.status === 'fulfilled' ? (dashRes.value.data.monthly_rental_revenue ?? MOCK_DATA.monthly_revenue) : MOCK_DATA.monthly_revenue,
+          revenue_trend: trendData.revenue_trend?.length ? trendData.revenue_trend : MOCK_DATA.revenue_trend,
+          fuel_trend: trendData.fuel_trend?.length ? trendData.fuel_trend : MOCK_DATA.fuel_trend,
+          breakdown_trend: trendData.breakdown_trend?.length ? trendData.breakdown_trend : MOCK_DATA.breakdown_trend,
+          fuel_consumption: trendData.fuel_consumption_total || MOCK_DATA.fuel_consumption,
+          active_contracts: activeContracts,
+          alerts: liveAlerts,
+        });
       } finally {
         setLoading(false);
       }
@@ -181,25 +186,25 @@ const RentalDashboard = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold text-white">Rental Operations</h1>
-        <p className="text-sm text-gray-500 mt-1">Equipment fleet status &amp; rental performance</p>
+        <h1 className="text-xl md:text-2xl font-bold text-white">Rental Operations</h1>
+        <p className="text-xs md:text-sm text-gray-500 mt-0.5">Equipment fleet status &amp; rental performance</p>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard title="Utilization Rate" value={`${data.utilization_pct}%`} icon={Activity} trend={4.2} trendLabel="vs last month" />
         <MetricCard title="Active Contracts" value={data.active_contracts} icon={FileText} trend={2} trendLabel="new this week" />
-        <MetricCard title="Monthly Revenue" value={`$${(data.monthly_revenue / 1000).toFixed(0)}k`} icon={DollarSign} trend={8.5} trendLabel="vs last month" />
+        <MetricCard title="Monthly Revenue" value={`\u20B9${(data.monthly_revenue / 1000).toFixed(0)}k`} icon={IndianRupee} trend={8.5} trendLabel="vs last month" />
         <MetricCard title="Fuel Consumption (L)" value={data.fuel_consumption.toLocaleString()} icon={Fuel} trend={-5.4} trendLabel="vs last month" trendUpIsGood={false} />
       </div>
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Gauge */}
-        <div className="bg-surface border border-border rounded-lg p-6 shadow-sm">
-          <h3 className="text-lg font-medium text-white mb-2">Fleet Utilization</h3>
+        <div className="bg-surface border border-border rounded-lg p-4 md:p-6 shadow-sm">
+          <h3 className="text-sm md:text-lg font-medium text-white mb-2">Fleet Utilization</h3>
           <UtilizationGauge value={data.utilization_pct} />
-          <div className="flex justify-between text-xs text-gray-500 mt-2 px-4">
+          <div className="flex justify-between text-xs text-gray-500 mt-2 px-2 md:px-4">
             <span>Low (&lt;40%)</span>
             <span>Good (&gt;80%)</span>
           </div>
@@ -210,8 +215,8 @@ const RentalDashboard = () => {
           <BarChart data={data.revenue_trend} margin={{ top: 5, right: 0, bottom: 5, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#27272A" vertical={false} />
             <XAxis dataKey="month" stroke="#A1A1AA" tick={{ fill: '#A1A1AA', fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis stroke="#A1A1AA" tick={{ fill: '#A1A1AA', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v / 1000}k`} />
-            <RechartsTooltip contentStyle={{ backgroundColor: '#1E1E1E', borderColor: '#27272A', color: '#FFF' }} cursor={{ fill: '#27272A', opacity: 0.3 }} formatter={(v) => `$${v.toLocaleString()}`} />
+            <YAxis stroke="#A1A1AA" tick={{ fill: '#A1A1AA', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `\u20B9${v / 1000}k`} />
+            <RechartsTooltip contentStyle={{ backgroundColor: '#1E1E1E', borderColor: '#27272A', color: '#FFF' }} cursor={{ fill: '#27272A', opacity: 0.3 }} formatter={(v) => `\u20B9${v.toLocaleString()}`} />
             <Bar dataKey="revenue" fill="#3B82F6" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ChartContainer>
@@ -247,11 +252,11 @@ const RentalDashboard = () => {
 
         {/* Alerts Panel */}
         <div className="bg-surface border border-border rounded-lg shadow-sm flex flex-col">
-          <div className="px-6 py-4 border-b border-border flex justify-between items-center">
-            <h3 className="text-base font-medium text-white">Active Alerts</h3>
+          <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border flex justify-between items-center">
+            <h3 className="text-sm md:text-base font-medium text-white">Active Alerts</h3>
             <span className="bg-alert/20 text-alert text-xs px-2 py-0.5 rounded-full font-medium">{data.alerts.length} Active</span>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-2">
             {data.alerts.map((alert) => (
               <div key={alert.id} className={`p-3 rounded-lg border flex items-start gap-3 ${alert.type === 'Alert' ? 'bg-alert/5 border-alert/20' : alert.type === 'Warning' ? 'bg-warning/5 border-warning/20' : 'bg-primary/5 border-primary/20'}`}>
                 <AlertTriangle size={16} className={`mt-0.5 shrink-0 ${alert.type === 'Alert' ? 'text-alert' : alert.type === 'Warning' ? 'text-warning' : 'text-primary'}`} />

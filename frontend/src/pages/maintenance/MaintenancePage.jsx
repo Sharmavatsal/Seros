@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Wrench, Calendar, AlertTriangle, CheckCircle, Clock, Activity } from 'lucide-react';
 import api from '../../lib/axios';
 import { SkeletonKPIRow, SkeletonTable } from '../../components/ui/Skeletons';
@@ -37,6 +37,8 @@ const StatusBadge = ({ status, nextDue }) => {
   }
   return badge;
 };
+
+const fmtCost = (v) => v ? '\u20B9' + Number(v).toLocaleString('en-IN') : '\u2014';
 
 const MaintenancePage = () => {
   const [activeTab, setActiveTab] = useState('schedules');
@@ -80,8 +82,8 @@ const MaintenancePage = () => {
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Maintenance</h1>
-        <p className="text-sm text-gray-500 mt-1">Preventive schedules, breakdown logs &amp; service history</p>
+        <h1 className="text-xl md:text-2xl font-bold text-white">Maintenance</h1>
+        <p className="text-xs md:text-sm text-gray-500 mt-0.5">Preventive schedules, breakdown logs &amp; service history</p>
       </div>
 
       {/* KPIs */}
@@ -92,17 +94,17 @@ const MaintenancePage = () => {
           <MetricCard title="Total Schedules" value={schedules.length} icon={Calendar} />
           <MetricCard title="Overdue PM" value={overdueCount} icon={AlertTriangle} trend={overdueCount > 0 ? overdueCount : 0} trendLabel="need immediate action" trendUpIsGood={false} />
           <MetricCard title="Due Within 14 Days" value={dueSoonCount} icon={Clock} />
-          <MetricCard title="Avg Repair Cost" value={`$${Number(avgCost).toLocaleString()}`} icon={Activity} />
+          <MetricCard title="Avg Repair Cost" value={fmtCost(avgCost)} icon={Activity} />
         </div>
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-surface border border-border rounded-lg p-1 w-fit">
+      <div className="flex flex-wrap gap-1 bg-surface border border-border rounded-lg p-1">
         {['schedules', 'logs'].map((t) => (
           <button
             key={t}
             onClick={() => setActiveTab(t)}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium capitalize transition-all ${activeTab === t ? 'bg-primary text-white' : 'text-gray-400 hover:text-white'}`}
+            className={`flex items-center gap-1.5 px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-medium capitalize transition-all ${activeTab === t ? 'bg-primary text-white' : 'text-gray-400 hover:text-white'}`}
           >
             {t === 'schedules' ? <Calendar size={13} /> : <Wrench size={13} />}
             {t === 'schedules' ? 'PM Schedules' : 'Service Logs'}
@@ -117,8 +119,8 @@ const MaintenancePage = () => {
         <>
           {activeTab === 'schedules' && (
             <div className="bg-surface border border-border rounded-lg overflow-hidden">
-              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-                <h3 className="text-base font-medium text-white">Preventive Maintenance Schedules</h3>
+              <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border flex items-center justify-between">
+                <h3 className="text-sm md:text-base font-medium text-white">Preventive Maintenance Schedules</h3>
                 <span className="text-xs text-gray-500">{schedules.length} schedules</span>
               </div>
               <div className="overflow-x-auto">
@@ -126,19 +128,19 @@ const MaintenancePage = () => {
                   <thead>
                     <tr className="border-b border-border bg-background/40">
                       {['Asset', 'Maintenance Type', 'Frequency', 'Last Completed', 'Next Due', 'Status'].map((h) => (
-                        <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
+                        <th key={h} className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
                     {schedules.map((s, i) => (
                       <tr key={s.id || i} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="px-6 py-3.5 font-mono text-xs text-gray-300">{s.asset_id}</td>
-                        <td className="px-6 py-3.5 text-white">{s.maintenance_type}</td>
-                        <td className="px-6 py-3.5 text-gray-400">Every {s.frequency_days}d</td>
-                        <td className="px-6 py-3.5 text-gray-400">{s.last_completed_date || '—'}</td>
-                        <td className="px-6 py-3.5 text-gray-300 font-medium">{s.next_due_date}</td>
-                        <td className="px-6 py-3.5"><StatusBadge status={s.status} nextDue={s.next_due_date} /></td>
+                        <td className="px-3 md:px-6 py-3 md:py-3.5 font-mono text-xs text-gray-300">{s.asset_id}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-3.5 text-white">{s.maintenance_type}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-3.5 text-gray-400">Every {s.frequency_days}d</td>
+                        <td className="px-3 md:px-6 py-3 md:py-3.5 text-gray-400">{s.last_completed_date || '—'}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-3.5 text-gray-300 font-medium">{s.next_due_date}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-3.5"><StatusBadge status={s.status} nextDue={s.next_due_date} /></td>
                       </tr>
                     ))}
                   </tbody>
@@ -149,8 +151,8 @@ const MaintenancePage = () => {
 
           {activeTab === 'logs' && (
             <div className="bg-surface border border-border rounded-lg overflow-hidden">
-              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-                <h3 className="text-base font-medium text-white">Service & Breakdown Logs</h3>
+              <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border flex items-center justify-between">
+                <h3 className="text-sm md:text-base font-medium text-white">Service & Breakdown Logs</h3>
                 <span className="text-xs text-gray-500">{logs.length} records</span>
               </div>
               <div className="overflow-x-auto">
@@ -158,27 +160,27 @@ const MaintenancePage = () => {
                   <thead>
                     <tr className="border-b border-border bg-background/40">
                       {['Log ID', 'Asset', 'Action Taken', 'Parts Replaced', 'Cost', 'Date'].map((h) => (
-                        <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
+                        <th key={h} className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
                     {logs.map((l, i) => (
                       <tr key={l.id || i} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="px-6 py-3.5 font-mono text-xs text-gray-400">{l.id}</td>
-                        <td className="px-6 py-3.5 font-mono text-xs text-gray-300">{l.asset_id}</td>
-                        <td className="px-6 py-3.5 text-gray-300 max-w-[200px] truncate">{l.action_taken}</td>
-                        <td className="px-6 py-3.5 text-gray-400 max-w-[180px] truncate">{l.parts_replaced || '—'}</td>
-                        <td className="px-6 py-3.5 font-semibold text-white">${Number(l.cost || 0).toLocaleString()}</td>
-                        <td className="px-6 py-3.5 text-gray-400">{l.service_date || l.created_at || '—'}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-3.5 font-mono text-xs text-gray-400">{l.id}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-3.5 font-mono text-xs text-gray-300">{l.asset_id}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-3.5 text-gray-300 max-w-[120px] md:max-w-[200px] truncate">{l.action_taken}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-3.5 text-gray-400 max-w-[100px] md:max-w-[180px] truncate">{l.parts_replaced || '—'}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-3.5 font-semibold text-white">{fmtCost(l.cost)}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-3.5 text-gray-400">{l.service_date || l.date_completed?.split('T')[0] || '—'}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <div className="px-6 py-3 border-t border-border bg-background/30">
-                <p className="text-sm text-gray-400">
-                  Total maintenance cost: <span className="text-white font-semibold">${totalCost.toLocaleString()}</span>
+              <div className="px-4 md:px-6 py-3 border-t border-border bg-background/30">
+                <p className="text-xs md:text-sm text-gray-400">
+                  Total maintenance cost: <span className="text-white font-semibold">{fmtCost(totalCost)}</span>
                 </p>
               </div>
             </div>

@@ -37,4 +37,8 @@ class Project(Base):
 
     status = Column(String)
 
+    service_type = Column(String, default="rental")  # rental, piling, om
+
+    billing_status = Column(String, default="Pending")  # Pending, Partial, Complete
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())

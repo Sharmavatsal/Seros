@@ -66,7 +66,7 @@ def get_invoices(
         query = query.filter(Invoice.vertical == vertical)
         
     if status:
-        query = query.filter(Invoice.status == status)
+        query = query.filter(Invoice.payment_status == status)
         
     return query.all()
 
@@ -140,8 +140,8 @@ def get_finance_dashboard(
         invoice_query = invoice_query.filter(Invoice.vertical == vertical)
         expense_query = expense_query.filter(Expense.vertical == vertical)
         
-    total_revenue = sum(inv.amount for inv in invoice_query.all() if inv.status == "paid")
-    outstanding_receivables = sum(inv.amount for inv in invoice_query.all() if inv.status in ["pending", "overdue"])
+    total_revenue = sum(inv.amount for inv in invoice_query.all() if inv.payment_status == "paid")
+    outstanding_receivables = sum(inv.amount for inv in invoice_query.all() if inv.payment_status in ["pending", "overdue"])
     total_expenses = sum(exp.amount for exp in expense_query.all())
     
     return FinanceDashboardResponse(

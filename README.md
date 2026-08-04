@@ -73,8 +73,9 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Run the server
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --port 8000 ---- or ---- uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
+-- to make a temp url for hosting the website in cloudflared run -> cloudflared tunnel --url http://localhost:5173/
 
 Backend will start at `http://localhost:8000`
 API docs available at `http://localhost:8000/docs`
@@ -196,3 +197,6 @@ dboard_vscode/
 ## License
 
 Private - For internal use only.
+
+
+

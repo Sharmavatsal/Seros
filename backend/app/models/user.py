@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean
+from sqlalchemy import Column, String, Boolean, DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
@@ -26,3 +26,5 @@ class User(Base):
     role = Column(String)
 
     is_active = Column(Boolean)
+
+    last_login = Column(DateTime(timezone=True), nullable=True)

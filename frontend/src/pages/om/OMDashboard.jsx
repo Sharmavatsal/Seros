@@ -1,16 +1,8 @@
-<<<<<<< HEAD
 import { useEffect, useState } from 'react';
-import { AlertCircle, CheckCircle, Repeat, Clock } from 'lucide-react';
-import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
-  PieChart, Pie, Cell
-=======
-import React, { useEffect, useState } from 'react';
-import { AlertCircle, CheckCircle, Repeat, Clock, Calendar, Briefcase, User } from 'lucide-react';
+import { AlertCircle, CheckCircle, Repeat, Clock, User } from 'lucide-react';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   PieChart, Pie, Cell, BarChart, Bar, Legend
->>>>>>> fd6d00829557414d464dcf8cf5218def2a9269b1
 } from 'recharts';
 import api from '../../lib/axios';
 
@@ -162,7 +154,7 @@ const OMDashboard = () => {
     { 
       header: 'Contract Value', 
       render: (row) => (
-        <span className="text-white font-medium">${row.value.toLocaleString()}</span>
+        <span className="text-white font-medium">{'\u20B9'}{row.value.toLocaleString()}</span>
       ) 
     },
     { 
@@ -183,11 +175,9 @@ const OMDashboard = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-white">O&amp;M Operations</h1>
-          <p className="text-sm text-gray-500 mt-1">SLA Compliance, ticket statistics &amp; maintenance tracker</p>
-        </div>
+      <div>
+        <h1 className="text-xl md:text-2xl font-bold text-white">O&amp;M Operations</h1>
+        <p className="text-xs md:text-sm text-gray-500 mt-0.5">SLA Compliance, ticket statistics &amp; maintenance tracker</p>
       </div>
 
       {/* KPI Cards */}

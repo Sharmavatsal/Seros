@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
+from datetime import datetime, timezone
 
 from app.core.database import get_db
 
@@ -36,6 +37,9 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
             status_code=401,
             detail="Invalid email or password"
         )
+
+    user.last_login = datetime.now(timezone.utc)
+    db.commit()
 
     token = create_access_token({
         "user_id": str(user.id),

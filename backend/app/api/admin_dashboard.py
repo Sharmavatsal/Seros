@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime, timezone
 from collections import defaultdict
 
 from app.core.database import get_db
 from app.auth.dependencies import get_current_admin
+from app.auth.jwt_handler import ACCESS_TOKEN_EXPIRE_MINUTES
 from app.models.finance import Invoice, Expense
 from app.models.asset import Asset
 from app.models.project import Project
@@ -27,7 +28,7 @@ router = APIRouter(prefix="/admin-dashboard", tags=["Admin Dashboard"])
 
 @router.get("/summary", response_model=AdminKPIs)
 def get_summary(db: Session = Depends(get_db), user=Depends(get_current_admin)):
-    total_revenue = db.query(func.sum(Invoice.amount)).filter(Invoice.status == "paid").scalar() or 0
+    total_revenue = db.query(func.sum(Invoice.amount)).filter(Invoice.payment_status == "paid").scalar() or 0
     
     total_assets = db.query(Asset).count()
     active_assets = db.query(Asset).filter(Asset.status == "Active").count()
@@ -35,7 +36,7 @@ def get_summary(db: Session = Depends(get_db), user=Depends(get_current_admin)):
     
     active_projects = db.query(Project).filter(Project.status == "Active").count()
     
-    outstanding = db.query(func.sum(Invoice.amount)).filter(Invoice.status.in_(["pending", "overdue"])).scalar() or 0
+    outstanding = db.query(func.sum(Invoice.amount)).filter(Invoice.payment_status.in_(["pending", "overdue"])).scalar() or 0
     
     return AdminKPIs(
         total_revenue=float(total_revenue),
@@ -45,26 +46,46 @@ def get_summary(db: Session = Depends(get_db), user=Depends(get_current_admin)):
     )
 
 @router.get("/charts/revenue-line", response_model=RevenueChartData)
-def get_revenue_line(db: Session = Depends(get_db), user=Depends(get_current_admin)):
-    # Group by month for simplicity
+def get_revenue_line(
+    db: Session = Depends(get_db),
+    user=Depends(get_current_admin),
+    period: str = 'monthly',
+):
+    trunc_map = {'daily': 'day', 'monthly': 'month', 'yearly': 'year'}
+    trunc = trunc_map.get(period, 'month')
+    fmt = {'daily': '%Y-%m-%d', 'monthly': '%Y-%m', 'yearly': '%Y'}.get(period, '%Y-%m')
+    
     results = db.query(
-        func.date_trunc('month', Invoice.issue_date).label('month'),
+        func.date_trunc(trunc, Invoice.invoice_date).label('period'),
         func.sum(Invoice.amount)
-    ).filter(Invoice.status == "paid").group_by('month').order_by('month').all()
+    ).filter(Invoice.payment_status == "paid").group_by('period').order_by('period').all()
     
     data = []
     for row in results:
-        period = row[0].strftime("%Y-%m") if row[0] else "Unknown"
-        data.append(RevenueDataPoint(period=period, revenue=float(row[1] or 0)))
+        label = row[0].strftime(fmt) if row[0] else "Unknown"
+        data.append(RevenueDataPoint(period=label, revenue=float(row[1] or 0)))
         
     return RevenueChartData(data=data)
 
 @router.get("/charts/revenue-pie", response_model=RevenuePieData)
-def get_revenue_pie(db: Session = Depends(get_db), user=Depends(get_current_admin)):
-    results = db.query(
+def get_revenue_pie(
+    db: Session = Depends(get_db),
+    user=Depends(get_current_admin),
+    period: str = 'monthly',
+):
+    start_map = {
+        'daily': date.today() - timedelta(days=30),
+        'monthly': date.today() - timedelta(days=365),
+    }
+    start_date = start_map.get(period)
+
+    query = db.query(
         Invoice.vertical,
         func.sum(Invoice.amount)
-    ).filter(Invoice.status == "paid").group_by(Invoice.vertical).all()
+    ).filter(Invoice.payment_status == "paid")
+    if start_date:
+        query = query.filter(Invoice.invoice_date >= start_date)
+    results = query.group_by(Invoice.vertical).all()
     
     data = []
     for row in results:
@@ -76,27 +97,26 @@ def get_revenue_pie(db: Session = Depends(get_db), user=Depends(get_current_admi
 
 @router.get("/charts/client-profit", response_model=ClientProfitability)
 def get_client_profitability(db: Session = Depends(get_db), user=Depends(get_current_admin)):
-    # Total revenue by client
+    from app.models.project import Project
     rev_results = db.query(
         Client.customer_name,
         func.sum(Invoice.amount)
-    ).join(Invoice, Client.id == Invoice.client_id)\
-     .filter(Invoice.status == "paid")\
+    ).join(Project, Project.id == Invoice.project_id)\
+     .join(Client, Client.id == Project.client_id)\
+     .filter(Invoice.payment_status == "paid")\
      .group_by(Client.customer_name).all()
      
-    # Simplifying profit to just revenue for now, as expenses might not be strictly tied to clients.
     data = []
     for row in rev_results:
-        data.append(ClientProfitabilityPoint(client_name=row[0], profit=float(row[1] or 0)))
+        data.append(ClientProfitabilityPoint(client_name=row[0] or "Unknown", profit=float(row[1] or 0)))
         
-    # Sort and get top 10
     data.sort(key=lambda x: x.profit, reverse=True)
     return ClientProfitability(data=data[:10])
 
 @router.get("/charts/receivables-aging", response_model=ReceivablesAging)
 def get_receivables_aging(db: Session = Depends(get_db), user=Depends(get_current_admin)):
     today = date.today()
-    invoices = db.query(Invoice).filter(Invoice.status.in_(["pending", "overdue"])).all()
+    invoices = db.query(Invoice).filter(Invoice.payment_status.in_(["pending", "overdue"])).all()
     
     days_0_30 = 0
     days_31_60 = 0
@@ -131,6 +151,7 @@ def get_metrics(db: Session = Depends(get_db), user=Depends(get_current_admin)):
 
 @router.get("/users")
 def get_all_users(db: Session = Depends(get_db), user=Depends(get_current_admin)):
+    now = datetime.now(timezone.utc)
     users = db.query(User).all()
     return [
         {
@@ -138,7 +159,10 @@ def get_all_users(db: Session = Depends(get_db), user=Depends(get_current_admin)
             "username": u.full_name or (u.email.split("@")[0] if u.email else "Unknown"),
             "email": u.email or "",
             "role": u.role or "unknown",
-            "status": "Active" if u.is_active else "Inactive",
+            "status": (
+                "Active" if u.last_login and (now - u.last_login).total_seconds() / 60 < ACCESS_TOKEN_EXPIRE_MINUTES
+                else "Inactive"
+            ),
         }
         for u in users
     ]

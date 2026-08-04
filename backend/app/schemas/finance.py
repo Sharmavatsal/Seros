@@ -4,11 +4,11 @@ from datetime import date, datetime
 
 class InvoiceBase(BaseModel):
     vertical: str
-    client_id: str
+    invoice_number: Optional[str] = None
     project_id: Optional[str] = None
     amount: float
-    status: str = "pending"
-    issue_date: date
+    payment_status: str = "pending"
+    invoice_date: Optional[date] = None
     due_date: date
 
 class InvoiceCreate(InvoiceBase):
@@ -23,10 +23,11 @@ class InvoiceResponse(InvoiceBase):
 
 class ExpenseBase(BaseModel):
     vertical: str
-    category: str
+    expense_type: Optional[str] = None
+    project_id: Optional[str] = None
     amount: float
-    date: date
-    description: str
+    expense_date: Optional[date] = None
+    remarks: Optional[str] = None
 
 class ExpenseCreate(ExpenseBase):
     pass

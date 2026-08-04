@@ -1,30 +1,31 @@
 import axios from 'axios';
+
+
 import { useAuthStore } from '../store/authStore';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: '/api',
 });
 
-// Request interceptor to attach the JWT token
+let isRedirecting = false;
+
 api.interceptors.request.use(
   (config) => {
     const token = useAuthStore.getState().token;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      isRedirecting = false;
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle 401s globally
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      // Token is invalid/expired - log the user out
+    if (error.response && error.response.status === 401 && !isRedirecting) {
+      isRedirecting = true;
       useAuthStore.getState().logout();
       window.location.href = '/login';
     }

@@ -123,7 +123,7 @@ def get_alerts(
     if role in ["admin", "rental_manager", "piling_manager", "om_manager"]:
         forty_five_days_ago = today - datetime.timedelta(days=45)
         query = db.query(Invoice).filter(
-            Invoice.status.in_(["pending", "overdue"]),
+            Invoice.payment_status.in_(["pending", "overdue"]),
             Invoice.due_date != None,
             Invoice.due_date < forty_five_days_ago
         )

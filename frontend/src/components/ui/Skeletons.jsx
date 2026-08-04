@@ -1,5 +1,3 @@
-import React from 'react';
-
 // Skeleton for a single metric card
 export const SkeletonCard = () => (
   <div className="bg-surface border border-border rounded-lg p-6 flex flex-col justify-between shadow-sm animate-fade-in">

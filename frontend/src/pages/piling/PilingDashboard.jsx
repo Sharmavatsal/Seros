@@ -1,14 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Target, DollarSign, Activity, Clock } from 'lucide-react';
-<<<<<<< HEAD
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
-  AreaChart, Area, ComposedChart, Line
-=======
+import { Target, IndianRupee, Activity, Clock } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   AreaChart, Area, ComposedChart, Line, Cell, Legend
->>>>>>> fd6d00829557414d464dcf8cf5218def2a9269b1
 } from 'recharts';
 import api from '../../lib/axios';
 import MetricCard from '../../components/ui/MetricCard';
@@ -62,7 +56,10 @@ const PilingDashboard = () => {
         const res = await api.get('/piling-dashboard/summary');
         setData({
           ...MOCK_DATA,
-          piles_per_day: res.data.average_depth || MOCK_DATA.piles_per_day,
+          piles_per_day: res.data.piles_per_day ?? MOCK_DATA.piles_per_day,
+          cost_per_pile: res.data.cost_per_pile ?? MOCK_DATA.cost_per_pile,
+          rig_utilization: res.data.rig_utilization_percent ?? MOCK_DATA.rig_utilization,
+          delay_days: res.data.delay_days ?? MOCK_DATA.delay_days,
         });
       } catch {
         setData(MOCK_DATA);
@@ -90,14 +87,14 @@ const PilingDashboard = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold text-white">Piling Operations</h1>
-        <p className="text-sm text-gray-500 mt-1">Daily bore count, depth progress &amp; project cost tracking</p>
+        <h1 className="text-xl md:text-2xl font-bold text-white">Piling Operations</h1>
+        <p className="text-xs md:text-sm text-gray-500 mt-0.5">Daily bore count, depth progress &amp; project cost tracking</p>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard title="Avg Piles / Day" value={data.piles_per_day} icon={Target} trend={1.2} trendLabel="vs last week" />
-        <MetricCard title="Cost Per Pile" value={`$${data.cost_per_pile.toLocaleString()}`} icon={DollarSign} trend={-3.5} trendLabel="vs last month" trendUpIsGood={false} />
+        <MetricCard title="Cost Per Pile" value={`\u20B9${data.cost_per_pile.toLocaleString()}`} icon={IndianRupee} trend={-3.5} trendLabel="vs last month" trendUpIsGood={false} />
         <MetricCard title="Rig Utilization" value={`${data.rig_utilization}%`} icon={Activity} trend={5.0} trendLabel="vs last month" />
         <MetricCard title="Delay Days" value={data.delay_days} icon={Clock} trend={-1} trendLabel="vs last month" trendUpIsGood={false} />
       </div>
@@ -149,18 +146,18 @@ const PilingDashboard = () => {
       </ChartContainer>
 
       {/* Cost Variance */}
-      <div className="bg-surface border border-border rounded-lg p-6 shadow-sm">
-        <h3 className="text-lg font-medium text-white mb-6">Cost Variance by Project</h3>
+      <div className="bg-surface border border-border rounded-lg p-4 md:p-6 shadow-sm">
+        <h3 className="text-sm md:text-lg font-medium text-white mb-4 md:mb-6">Cost Variance by Project</h3>
         <div style={{ height: 280 }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data.cost_variance} layout="vertical" margin={{ top: 5, right: 40, bottom: 5, left: 120 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#27272A" horizontal={false} />
-              <XAxis type="number" stroke="#A1A1AA" tick={{ fill: '#A1A1AA', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v / 1000}k`} />
+              <XAxis type="number" stroke="#A1A1AA" tick={{ fill: '#A1A1AA', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `\u20B9${v / 1000}k`} />
               <YAxis type="category" dataKey="project" stroke="#A1A1AA" tick={{ fill: '#A1A1AA', fontSize: 10 }} axisLine={false} tickLine={false} width={115} />
               <RechartsTooltip
                 contentStyle={{ backgroundColor: '#1E1E1E', borderColor: '#27272A', color: '#FFF' }}
                 cursor={{ fill: '#27272A', opacity: 0.3 }}
-                formatter={(v, name) => [`$${v.toLocaleString()}`, name]}
+                formatter={(v, name) => [`\u20B9${v.toLocaleString()}`, name]}
               />
               <Legend wrapperStyle={{ color: '#A1A1AA', fontSize: 12 }} />
               <Bar dataKey="budget" name="Budget" fill="#3B82F6" radius={[0, 4, 4, 0]} />
