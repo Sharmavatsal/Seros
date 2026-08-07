@@ -199,6 +199,10 @@ dboard_vscode/
 - [Vatsal Sharma](https://github.com/Sharmavatsal)
 - [Vyom Modh](https://github.com/DarkHeaVen1711)
 
+## Badges
+
+This repository supports the **Pair Extraordinaire** and **Quickdraw** GitHub achievements.
+
 ## License
 
 Private - For internal use only.
