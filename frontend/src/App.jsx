@@ -17,6 +17,7 @@ import FinancePage from './pages/finance/FinancePage';
 import ReportsPage from './pages/reports/ReportsPage';
 import AlertsPage from './pages/alerts/AlertsPage';
 import MaintenancePage from './pages/maintenance/MaintenancePage';
+import Settings from './pages/settings/Settings';
 
 const Unauthorized = () => (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -95,6 +96,9 @@ function App() {
                 <Route element={<ProtectedRoute allowedRoles={['admin', 'rental_manager', 'piling_manager', 'om_manager']} />}>
                   <Route path="alerts" element={<AlertsPage />} />
                 </Route>
+
+                {/* Settings (all authenticated roles) */}
+                <Route path="settings" element={<Settings />} />
               </Route>
             </Route>
 

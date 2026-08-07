@@ -5,8 +5,8 @@ from pydantic import BaseModel
 import uuid
 
 from app.core.database import get_db
-from app.auth.dependencies import get_current_admin
-from app.auth.password import hash_password
+from app.auth.dependencies import get_current_admin, get_current_user
+from app.auth.password import hash_password, verify_password
 from app.models.user import User
 
 router = APIRouter(prefix="/users", tags=["User Management"])
@@ -23,6 +23,16 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     role: Optional[str] = None
     is_active: Optional[bool] = None
+
+
+class ProfileUpdate(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
 
 
 class UserResponse(BaseModel):
@@ -87,6 +97,61 @@ def create_user(
     db.commit()
     db.refresh(new_user)
     return user_to_dict(new_user)
+
+
+@router.get("/me", response_model=UserResponse)
+def get_my_profile(
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    db.refresh(user)
+    return user_to_dict(user)
+
+
+@router.put("/me", response_model=UserResponse)
+def update_my_profile(
+    data: ProfileUpdate,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    if data.full_name is not None:
+        if not data.full_name.strip():
+            raise HTTPException(status_code=400, detail="Full name cannot be empty")
+        user.full_name = data.full_name.strip()
+
+    if data.email is not None:
+        if "@" not in data.email:
+            raise HTTPException(status_code=400, detail="Valid email required")
+        existing = db.query(User).filter(
+            User.email == data.email, User.id != user.id
+        ).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        user.email = data.email.strip()
+
+    db.commit()
+    db.refresh(user)
+    return user_to_dict(user)
+
+
+@router.post("/me/password")
+def change_my_password(
+    data: PasswordChange,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    if not verify_password(data.current_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    if len(data.new_password) < 8:
+        raise HTTPException(status_code=400, detail="New password must be at least 8 characters")
+
+    if data.new_password == data.current_password:
+        raise HTTPException(status_code=400, detail="New password must be different from current password")
+
+    user.password_hash = hash_password(data.new_password)
+    db.commit()
+    return {"detail": "Password updated successfully"}
 
 
 @router.patch("/{user_id}", response_model=UserResponse)
