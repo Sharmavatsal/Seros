@@ -194,6 +194,11 @@ dboard_vscode/
 - `vendors` - Vendor records
 - `documents` - File upload metadata
 
+## Contributors
+
+- [Vatsal Sharma](https://github.com/Sharmavatsal)
+- [Vyom Modh](https://github.com/DarkHeaVen1711)
+
 ## License
 
 Private - For internal use only.
