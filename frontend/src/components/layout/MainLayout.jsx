@@ -2,7 +2,7 @@ import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Wrench, HardHat, Home, LogOut,
   IndianRupee, FileBarChart2, Bell, Users, Shield, ChevronRight,
-  Hammer, Upload, Package, ClipboardCheck, FileText, Menu, X
+  Hammer, Upload, Package, ClipboardCheck, FileText, Menu, X, Settings as SettingsIcon
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useEffect, useState } from 'react';
@@ -135,6 +135,7 @@ const Sidebar = ({ alertCount }) => {
 
       {/* User Info + Logout */}
       <div className="px-3 py-3 border-t border-border">
+        <NavItem to="/settings" icon={SettingsIcon} label="Settings" />
         <div className="flex items-center gap-3 px-2 py-2 mb-1">
           <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-primary font-bold text-sm uppercase shrink-0">
             {user?.username ? user.username.charAt(0) : '?'}
@@ -176,6 +177,7 @@ const TopNav = ({ alertCount, onMenuToggle, sidebarOpen }) => {
     if (path === '/equipment') return 'Equipment Inventory';
     if (path === '/orders') return 'Active Rentals / Orders';
     if (path === '/inspections') return 'Pre-Rental Inspections';
+    if (path === '/settings') return 'Settings';
     return 'Dashboard';
   };
 
