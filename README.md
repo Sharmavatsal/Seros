@@ -199,6 +199,8 @@ dboard_vscode/
 - [Vatsal Sharma](https://github.com/Sharmavatsal) - Full-stack development, backend & frontend
 - [Vyom Modh](https://github.com/DarkHeaVen1711) - Backend APIs, database models, deployment
 
+Contributions are collaborative: docs and features in this repo are co-authored between the two maintainers.
+
 ## License
 
 Private - For internal use only.
