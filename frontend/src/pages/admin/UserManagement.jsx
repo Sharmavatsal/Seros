@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, X, Search, Edit2, ToggleLeft, ToggleRight, Filter } from 'lucide-react';
+import { Plus, X, Search, ToggleLeft, ToggleRight, Filter } from 'lucide-react';
 import api from '../../lib/axios';
 import { useToast } from '../../components/ui/ToastContext';
 import { SkeletonTable } from '../../components/ui/Skeletons';
@@ -97,59 +97,6 @@ const CreateUserModal = ({ onClose, onCreated }) => {
   );
 };
 
-// ─── Edit Role Modal ──────────────────────────────────────────────────────────
-const EditRoleModal = ({ user, onClose, onSaved }) => {
-  const toast = useToast();
-  const [role, setRole] = useState(user.role);
-  const [saving, setSaving] = useState(false);
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await api.patch(`/users/${user.id}`, { role });
-      toast.success('Role updated successfully');
-      onSaved();
-      onClose();
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to update role');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-surface border border-border rounded-xl shadow-2xl w-full max-w-sm animate-fade-in">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h2 className="text-lg font-semibold text-white">Edit Role</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-white"><X size={20} /></button>
-        </div>
-        <div className="p-6 space-y-4">
-          <p className="text-sm text-gray-400">Changing role for <span className="text-white font-medium">{user.username}</span></p>
-          <div className="space-y-2">
-            {Object.entries(ROLE_CONFIG).map(([key, cfg]) => (
-              <button
-                key={key}
-                onClick={() => setRole(key)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg border transition-all text-left ${role === key ? 'border-primary bg-primary/10' : 'border-border hover:border-border-light'}`}
-              >
-                <div className={`w-2 h-2 rounded-full ${role === key ? 'bg-primary' : 'bg-gray-600'}`} />
-                <span className={`text-sm font-medium ${role === key ? 'text-white' : 'text-gray-400'}`}>{cfg.label}</span>
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button onClick={onClose} className="flex-1 px-4 py-2 text-sm border border-border text-gray-400 hover:text-white rounded-md transition-colors">Cancel</button>
-            <button onClick={handleSave} disabled={saving} className="flex-1 px-4 py-2 text-sm bg-primary hover:bg-primary-dark text-white rounded-md transition-colors disabled:opacity-50">
-              {saving ? 'Saving...' : 'Save Role'}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const UserManagement = () => {
   const toast = useToast();
@@ -158,7 +105,6 @@ const UserManagement = () => {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [showCreate, setShowCreate] = useState(false);
-  const [editUser, setEditUser] = useState(null);
   const [clickFilter, setClickFilter] = useState(null);
 
   const fetchUsers = async () => {
@@ -336,13 +282,6 @@ const UserManagement = () => {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => setEditUser(u)}
-                            className="p-1.5 text-gray-500 hover:text-primary hover:bg-primary/10 rounded-md transition-colors"
-                            title="Edit role"
-                          >
-                            <Edit2 size={14} />
-                          </button>
-                          <button
                             onClick={() => toggleStatus(u)}
                             className={`p-1.5 rounded-md transition-colors ${u.status === 'Active' ? 'text-gray-500 hover:text-warning hover:bg-warning/10' : 'text-gray-500 hover:text-healthy hover:bg-healthy/10'}`}
                             title={u.status === 'Active' ? 'Deactivate' : 'Activate'}
@@ -361,7 +300,6 @@ const UserManagement = () => {
       )}
 
       {showCreate && <CreateUserModal onClose={() => setShowCreate(false)} onCreated={fetchUsers} />}
-      {editUser && <EditRoleModal user={editUser} onClose={() => setEditUser(null)} onSaved={fetchUsers} />}
     </div>
   );
 };
