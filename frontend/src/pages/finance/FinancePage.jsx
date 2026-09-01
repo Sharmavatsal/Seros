@@ -56,10 +56,11 @@ const normalizeExpense = (exp) => ({
 // ─── Create Invoice Modal ─────────────────────────────────────────────────────
 const InvoiceModal = ({ onClose, onCreated, userVertical }) => {
   const toast = useToast();
+  const today = new Date().toISOString().split('T')[0];
   const [form, setForm] = useState({
     vertical: userVertical || 'rental',
     amount: '',
-    invoice_date: new Date().toISOString().split('T')[0],
+    invoice_date: today,
     due_date: '',
     payment_status: 'pending',
     invoice_number: '',
@@ -68,8 +69,15 @@ const InvoiceModal = ({ onClose, onCreated, userVertical }) => {
   const [saving, setSaving] = useState(false);
 
   const handleChange = (e) => {
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
-    setErrors((prev) => ({ ...prev, [e.target.name]: undefined }));
+    const { name, value } = e.target;
+    setForm((f) => {
+      const updated = { ...f, [name]: value };
+      if (name === 'invoice_date' && f.due_date && f.due_date <= value) {
+        updated.due_date = '';
+      }
+      return updated;
+    });
+    setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
 
   const validate = () => {
@@ -79,11 +87,17 @@ const InvoiceModal = ({ onClose, onCreated, userVertical }) => {
     } else if (parseFloat(form.amount) <= 0) {
       e.amount = 'Amount must be greater than zero';
     }
-    if (!form.invoice_date) e.invoice_date = 'Invoice date is required';
+    if (!form.invoice_date) {
+      e.invoice_date = 'Invoice date is required';
+    } else if (form.invoice_date > today) {
+      e.invoice_date = 'Invoice date cannot be in the future';
+    }
     if (!form.due_date) {
       e.due_date = 'Due date is required';
-    } else if (form.invoice_date && form.due_date < form.invoice_date) {
-      e.due_date = 'Due date cannot be before invoice date';
+    } else if (form.due_date <= today) {
+      e.due_date = 'Due date must be a future date';
+    } else if (form.invoice_date && form.due_date <= form.invoice_date) {
+      e.due_date = 'Due date must be after invoice date';
     }
     if (!form.vertical) e.vertical = 'Vertical is required';
     setErrors(e);
@@ -156,12 +170,12 @@ const InvoiceModal = ({ onClose, onCreated, userVertical }) => {
             </div>
             <div>
               <label className={labelCls}>Invoice Date <span className="text-alert">*</span></label>
-              <input name="invoice_date" type="date" className={`${inputCls} ${errors.invoice_date ? inputErr : ''}`} value={form.invoice_date} onChange={handleChange} />
+              <input name="invoice_date" type="date" max={today} className={`${inputCls} ${errors.invoice_date ? inputErr : ''}`} value={form.invoice_date} onChange={handleChange} />
               {errors.invoice_date && <span className={errCls}>{errors.invoice_date}</span>}
             </div>
             <div>
               <label className={labelCls}>Due Date <span className="text-alert">*</span></label>
-              <input name="due_date" type="date" className={`${inputCls} ${errors.due_date ? inputErr : ''}`} value={form.due_date} onChange={handleChange} />
+              <input name="due_date" type="date" min={form.invoice_date ? new Date(new Date(form.invoice_date).getTime() + 86400000).toISOString().split('T')[0] : today} className={`${inputCls} ${errors.due_date ? inputErr : ''}`} value={form.due_date} onChange={handleChange} />
               {errors.due_date && <span className={errCls}>{errors.due_date}</span>}
             </div>
           </div>

@@ -37,6 +37,13 @@ def create_invoice(
     user: User = Depends(get_current_user)
 ):
     verify_vertical_access(user, invoice.vertical)
+    today = date.today()
+    if invoice.invoice_date and invoice.invoice_date > today:
+        raise HTTPException(status_code=400, detail="Invoice date cannot be in the future")
+    if invoice.due_date <= today:
+        raise HTTPException(status_code=400, detail="Due date must be a future date")
+    if invoice.invoice_date and invoice.due_date <= invoice.invoice_date:
+        raise HTTPException(status_code=400, detail="Due date must be after invoice date")
     db_invoice = Invoice(**invoice.model_dump())
     db.add(db_invoice)
     db.commit()
