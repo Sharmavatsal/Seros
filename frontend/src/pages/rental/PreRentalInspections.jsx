@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Plus, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Plus, CheckCircle, XCircle, Clock, X, Filter } from 'lucide-react';
 import api from '../../lib/axios';
 import { useToast } from '../../components/ui/ToastContext';
 
@@ -15,16 +15,45 @@ const InspectionForm = ({ onClose, onCreated }) => {
     checklist_safety: 'OK',
     inspection_notes: '',
   });
+  const [errors, setErrors] = useState({});
+  const [equipment, setEquipment] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    api.get('/equipment/?page=1&limit=100')
+      .then((res) => setEquipment(res.data?.equipment || []))
+      .catch(() => setEquipment([]));
+  }, []);
+
+  const validate = () => {
+    const e = {};
+    if (!form.inspection_date) e.inspection_date = 'Inspection date is required';
+    const days = parseInt(form.duration_days, 10);
+    if (form.duration_days === '' || isNaN(days) || days < 1) {
+      e.duration_days = 'Duration must be a positive number of days';
+    }
+    if (form.rental_rate !== '' && (isNaN(parseFloat(form.rental_rate)) || parseFloat(form.rental_rate) < 0)) {
+      e.rental_rate = 'Rental rate cannot be negative';
+    }
+    setErrors(e);
+    return Object.keys(e).filter((k) => e[k]).length === 0;
+  };
+
+  const handleChange = (field) => (ev) => {
+    setForm({ ...form, [field]: ev.target.value });
+    setErrors((prev) => ({ ...prev, [field]: undefined }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validate()) return;
     setSubmitting(true);
     try {
       await api.post('/inspections/', {
         ...form,
-        rental_rate: form.rental_rate ? parseFloat(form.rental_rate) : null,
-        duration_days: parseInt(form.duration_days) || null,
+        equipment_id: form.equipment_id || null,
+        rental_rate: form.rental_rate !== '' ? parseFloat(form.rental_rate) : null,
+        duration_days: form.duration_days !== '' ? parseInt(form.duration_days, 10) : null,
       });
       toast.success('Inspection created successfully');
       onCreated?.();
@@ -36,48 +65,80 @@ const InspectionForm = ({ onClose, onCreated }) => {
     }
   };
 
-  const inputCls = "w-full bg-background border border-border rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-primary";
-  const labelCls = "block text-xs font-medium text-gray-400 mb-1";
+  const inputCls = "w-full bg-background border border-border rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-primary transition-colors";
+  const inputErr = "border-alert/60";
+  const labelCls = "block text-xs font-medium text-gray-400 mb-1.5";
+  const errText = "block mt-1 text-xs text-alert";
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-surface border border-border rounded-lg shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="px-6 py-4 border-b border-border">
-          <h3 className="text-lg font-semibold text-white">New Pre-Rental Inspection</h3>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-surface border border-border rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-fade-in" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-surface z-10">
+          <h2 className="text-lg font-semibold text-white">New Pre-Rental Inspection</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors"><X size={20} /></button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={labelCls}>Inspection Date</label>
-              <input type="date" value={form.inspection_date} onChange={(e) => setForm({ ...form, inspection_date: e.target.value })} className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Duration (Days)</label>
-              <input type="number" value={form.duration_days} onChange={(e) => setForm({ ...form, duration_days: e.target.value })} className={inputCls} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={labelCls}>Rental Rate / Month</label>
-              <input type="number" value={form.rental_rate} onChange={(e) => setForm({ ...form, rental_rate: e.target.value })} placeholder="e.g. 38000" className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Status</label>
-              <select value={form.inspection_status} onChange={(e) => setForm({ ...form, inspection_status: e.target.value })} className={inputCls}>
-                <option value="Pending">Pending</option>
-                <option value="Approved">Approved</option>
-                <option value="Rejected">Rejected</option>
-              </select>
+        <form onSubmit={handleSubmit} className="p-6 space-y-5" noValidate>
+          {/* Equipment & Schedule */}
+          <div>
+            <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-3">Equipment & Schedule</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <label className={labelCls}>Equipment</label>
+                <select
+                  value={form.equipment_id || ''}
+                  onChange={handleChange('equipment_id')}
+                  className={`${inputCls} ${errors.equipment_id ? inputErr : ''}`}
+                >
+                  <option value="">Select equipment (optional)</option>
+                  {equipment.map((eq) => (
+                    <option key={eq.id} value={eq.id}>
+                      {eq.registration_no || eq.asset_code || eq.equipment_type || eq.id}
+                    </option>
+                  ))}
+                </select>
+                {errors.equipment_id && <span className={errText}>{errors.equipment_id}</span>}
+              </div>
+              <div>
+                <label className={labelCls}>Inspection Date <span className="text-alert">*</span></label>
+                <input type="date" value={form.inspection_date} onChange={handleChange('inspection_date')} className={`${inputCls} ${errors.inspection_date ? inputErr : ''}`} />
+                {errors.inspection_date && <span className={errText}>{errors.inspection_date}</span>}
+              </div>
+              <div>
+                <label className={labelCls}>Duration (Days) <span className="text-alert">*</span></label>
+                <input type="number" min="1" value={form.duration_days} onChange={handleChange('duration_days')} className={`${inputCls} ${errors.duration_days ? inputErr : ''}`} />
+                {errors.duration_days && <span className={errText}>{errors.duration_days}</span>}
+              </div>
             </div>
           </div>
 
+          {/* Financials & Status */}
+          <div className="border-t border-border pt-4">
+            <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-3">Financials & Status</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>Rental Rate / Month</label>
+                <input type="number" min="0" step="0.01" value={form.rental_rate} onChange={handleChange('rental_rate')} placeholder="e.g. 38000" className={`${inputCls} ${errors.rental_rate ? inputErr : ''}`} />
+                {errors.rental_rate && <span className={errText}>{errors.rental_rate}</span>}
+              </div>
+              <div>
+                <label className={labelCls}>Status</label>
+                <select value={form.inspection_status} onChange={handleChange('inspection_status')} className={inputCls}>
+                  <option value="Pending">Pending</option>
+                  <option value="Approved">Approved</option>
+                  <option value="Rejected">Rejected</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Checklist */}
           <div className="border-t border-border pt-4">
             <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-3">Inspection Checklist</p>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {['checklist_equipment_condition', 'checklist_functionality', 'checklist_safety'].map((field) => (
                 <div key={field}>
-                  <label className={labelCls}>{field.replace('checklist_', '').replace(/_/g, ' ')}</label>
-                  <select value={form[field]} onChange={(e) => setForm({ ...form, [field]: e.target.value })} className={inputCls}>
+                  <label className={labelCls}>{field.replace('checklist_', '').toLowerCase().replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase())}</label>
+                  <select value={form[field]} onChange={handleChange(field)} className={inputCls}>
                     <option value="OK">OK</option>
                     <option value="Damage">Damage</option>
                     <option value="Issue">Issue</option>
@@ -88,15 +149,15 @@ const InspectionForm = ({ onClose, onCreated }) => {
             </div>
           </div>
 
-          <div>
+          <div className="border-t border-border pt-4">
             <label className={labelCls}>Inspection Notes</label>
-            <textarea value={form.inspection_notes} onChange={(e) => setForm({ ...form, inspection_notes: e.target.value })}
+            <textarea value={form.inspection_notes} onChange={handleChange('inspection_notes')}
               rows={3} className={inputCls} placeholder="Describe any observations..." />
           </div>
 
-          <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 bg-background border border-border rounded-md text-sm text-gray-300 hover:border-primary">Cancel</button>
-            <button type="submit" disabled={submitting} className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-blue-600 disabled:opacity-50">
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 text-sm border border-border text-gray-400 hover:text-white rounded-md transition-colors">Cancel</button>
+            <button type="submit" disabled={submitting} className="flex-1 px-4 py-2 text-sm bg-primary hover:bg-blue-600 text-white rounded-md transition-colors disabled:opacity-50">
               {submitting ? 'Creating...' : 'Submit Inspection'}
             </button>
           </div>
@@ -108,24 +169,56 @@ const InspectionForm = ({ onClose, onCreated }) => {
 
 const PreRentalInspections = () => {
   const [inspections, setInspections] = useState([]);
-  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
+  const [clickFilter, setClickFilter] = useState(null);
   const [showForm, setShowForm] = useState(false);
 
   const fetchInspections = async () => {
     setLoading(true);
     try {
-      const params = statusFilter ? `?status=${statusFilter}` : '';
-      const res = await api.get('/inspections/' + params);
+      const res = await api.get('/inspections/');
       setInspections(res.data.inspections);
-      setTotal(res.data.total_count);
     } catch { /* fallback */ }
     setLoading(false);
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { fetchInspections(); }, [statusFilter]);
+  useEffect(() => { fetchInspections(); }, []);
+
+  const filtered = useMemo(() => {
+    let rows = inspections;
+    if (statusFilter) rows = rows.filter(i => i.inspection_status === statusFilter);
+    if (clickFilter && clickFilter.value !== undefined && clickFilter.value !== null) {
+      const v = String(clickFilter.value);
+      if (clickFilter.key === 'status') {
+        rows = rows.filter(i => String(i.inspection_status).toLowerCase() === v.toLowerCase());
+      } else if (clickFilter.key === 'checklist') {
+        rows = rows.filter(i =>
+          String(i.checklist_equipment_condition).toLowerCase() === v.toLowerCase() ||
+          String(i.checklist_functionality).toLowerCase() === v.toLowerCase() ||
+          String(i.checklist_safety).toLowerCase() === v.toLowerCase()
+        );
+      } else {
+        const keyMap = { date: 'inspection_date', equipment: 'equipment_id', duration: 'duration_days', rate: 'rental_rate' };
+        const field = keyMap[clickFilter.key];
+        if (field) rows = rows.filter(i => String(i[field]).toLowerCase().includes(v.toLowerCase()));
+      }
+    }
+    return rows;
+  }, [inspections, statusFilter, clickFilter]);
+
+  const handleFilter = (key, value) => {
+    if (value === undefined || value === null || value === '') return;
+    setClickFilter({ key, value });
+    if (key === 'status') setStatusFilter(value);
+    else setStatusFilter('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const clearFilter = () => {
+    setClickFilter(null);
+    setStatusFilter('');
+  };
 
   const StatusIcon = ({ status }) => {
     if (status === 'Approved') return <CheckCircle size={14} className="text-healthy" />;
@@ -133,12 +226,29 @@ const PreRentalInspections = () => {
     return <Clock size={14} className="text-warning" />;
   };
 
+  const Cell = ({ value, filterKey, className }) => {
+    if (value === undefined || value === null || value === '') {
+      return <td className={className}>-</td>;
+    }
+    const active = clickFilter && clickFilter.key === filterKey && String(clickFilter.value).toLowerCase() === String(value).toLowerCase();
+    return (
+      <td
+        title={`Click to show all matching "${value}"`}
+        className={className + ' cursor-pointer transition-colors hover:text-primary'}
+        style={active ? { color: '#3B82F6', fontWeight: 600 } : undefined}
+        onClick={() => handleFilter(filterKey, value)}
+      >
+        {value}
+      </td>
+    );
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-white">Pre-Rental Inspections</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage equipment inspections before rental dispatch</p>
+          <p className="text-sm text-gray-500 mt-1">Click any value to filter and view all matching inspections</p>
         </div>
         <button onClick={() => setShowForm(true)}
           className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-blue-600">
@@ -147,16 +257,28 @@ const PreRentalInspections = () => {
       </div>
 
       <div className="bg-surface border border-border rounded-lg p-4 shadow-sm">
-        <div className="flex items-center gap-3">
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+        <div className="flex flex-wrap items-center gap-3">
+          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setClickFilter(null); }}
             className="bg-background border border-border rounded-md px-3 py-2 text-sm text-gray-300">
             <option value="">All Status</option>
             <option value="Pending">Pending</option>
             <option value="Approved">Approved</option>
             <option value="Rejected">Rejected</option>
           </select>
-          <span className="text-xs text-gray-500">{total} inspections</span>
+          <span className="text-xs text-gray-500">{filtered.length} inspections</span>
+          {clickFilter && (
+            <button onClick={clearFilter} className="flex items-center gap-1 ml-auto px-2 py-1 rounded-md bg-background border border-border text-xs text-gray-300 hover:text-white hover:border-primary transition-colors">
+              <X size={12} /> Clear filter
+            </button>
+          )}
         </div>
+        {clickFilter && (
+          <p className="mt-2 flex items-center gap-2 text-xs text-gray-300">
+            <Filter size={13} className="text-primary" />
+            Showing all inspections where <span className="text-primary font-medium capitalize">{clickFilter.key}</span> ={' '}
+            <span className="text-white font-semibold">&quot;{String(clickFilter.value)}&quot;</span>
+          </p>
+        )}
       </div>
 
       <div className="bg-surface border border-border rounded-lg shadow-sm overflow-hidden">
@@ -177,31 +299,24 @@ const PreRentalInspections = () => {
             <tbody>
               {loading ? (
                 <tr><td colSpan="8" className="py-8 text-center text-gray-500">Loading...</td></tr>
-              ) : inspections.length === 0 ? (
+              ) : filtered.length === 0 ? (
                 <tr><td colSpan="8" className="py-8 text-center text-gray-500">No inspections found. Click &quot;New Inspection&quot; to create one.</td></tr>
-              ) : inspections.map((i) => (
-                <tr key={i.id} className="border-b border-border/50 hover:bg-white/[0.02]">
-                  <td className="py-3 px-4 text-gray-300 text-xs">{i.inspection_date || '-'}</td>
-                  <td className="py-3 px-4 text-gray-400 text-xs font-mono">{i.equipment_id ? i.equipment_id.substring(0, 8) + '...' : '-'}</td>
-                  <td className="py-3 px-4 text-gray-300">{i.duration_days || '-'} days</td>
-                  <td className="py-3 px-4 text-gray-300">{i.rental_rate ? '\u20B9' + Number(i.rental_rate).toLocaleString('en-IN') : '-'}</td>
+              ) : filtered.map((i) => (
+                <tr key={i.id} className="border-b border-border/50 hover:bg-white/[0.03]">
+                  <Cell filterKey="date" value={i.inspection_date || '-'} className="py-3 px-4 text-gray-300 text-xs" />
+                  <Cell filterKey="equipment" value={i.equipment_id ? i.equipment_id.substring(0, 8) + '...' : '-'} className="py-3 px-4 text-gray-400 text-xs font-mono" />
+                  <Cell filterKey="duration" value={i.duration_days ? i.duration_days + ' days' : '-'} className="py-3 px-4 text-gray-300" />
+                  <Cell filterKey="rate" value={i.rental_rate ? '\u20B9' + Number(i.rental_rate).toLocaleString('en-IN') : '-'} className="py-3 px-4 text-gray-300" />
+                  <Cell filterKey="checklist" value={i.checklist_equipment_condition || '-'} className="py-3 px-4" />
+                  <Cell filterKey="checklist" value={i.checklist_functionality || '-'} className="py-3 px-4" />
+                  <Cell filterKey="checklist" value={i.checklist_safety || '-'} className="py-3 px-4" />
                   <td className="py-3 px-4">
-                    <span className={'text-xs ' + (i.checklist_equipment_condition === 'OK' ? 'text-healthy' : 'text-warning')}>
-                      {i.checklist_equipment_condition || '-'}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className={'text-xs ' + (i.checklist_functionality === 'OK' ? 'text-healthy' : 'text-warning')}>
-                      {i.checklist_functionality || '-'}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className={'text-xs ' + (i.checklist_safety === 'OK' ? 'text-healthy' : 'text-warning')}>
-                      {i.checklist_safety || '-'}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-1.5">
+                    <div
+                      className="flex items-center gap-1.5 cursor-pointer transition-opacity hover:opacity-80"
+                      style={clickFilter && clickFilter.key === 'status' && String(clickFilter.value).toLowerCase() === String(i.inspection_status).toLowerCase() ? { color: '#3B82F6' } : undefined}
+                      onClick={() => handleFilter('status', i.inspection_status)}
+                      title="Click to show all matching status"
+                    >
                       <StatusIcon status={i.inspection_status} />
                       <span className={'px-2 py-0.5 rounded-full text-xs font-medium ' + (
                         i.inspection_status === 'Approved' ? 'bg-healthy/20 text-healthy' :

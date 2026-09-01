@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Download, FileText, BarChart2, Calendar, Filter } from 'lucide-react';
+import { Download, FileText, BarChart2, Calendar, Filter, X } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartsTooltip, ResponsiveContainer, Legend
@@ -59,6 +59,11 @@ const ReportsPage = () => {
   const [data, setData] = useState([]);
   const [summary, setSummary] = useState(null);
   const [exporting, setExporting] = useState(null);
+  const [reportFilter, setReportFilter] = useState(null);
+
+  const filteredReportData = reportFilter
+    ? data.filter(r => String(r[reportFilter.key] ?? '').toLowerCase() === String(reportFilter.value).toLowerCase())
+    : data;
 
   const fetchReport = async () => {
     setLoading(true);
@@ -392,8 +397,22 @@ const ReportsPage = () => {
         <div className="bg-surface border border-border rounded-lg overflow-hidden">
           <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border flex items-center justify-between">
             <h3 className="text-sm md:text-base font-medium text-white capitalize">{timeframe} Report Data</h3>
-            <span className="text-xs text-gray-500">{data.length} periods</span>
+            <div className="flex items-center gap-2">
+              {reportFilter && (
+                <button onClick={() => setReportFilter(null)} className="flex items-center gap-1 px-2 py-1 rounded-md bg-background border border-border text-xs text-gray-300 hover:text-white hover:border-primary transition-colors">
+                  <X size={12} /> Clear filter
+                </button>
+              )}
+              <span className="text-xs text-gray-500">{filteredReportData.length} periods</span>
+            </div>
           </div>
+          {reportFilter && (
+            <div className="px-4 md:px-6 py-2 bg-background/30 border-b border-border flex items-center gap-2 text-xs text-gray-300">
+              <Filter size={13} className="text-primary" />
+              Showing rows where <span className="text-primary font-medium capitalize">{reportFilter.key}</span> ={' '}
+              <span className="text-white font-semibold">&quot;{String(reportFilter.value)}&quot;</span>
+            </div>
+          )}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -405,11 +424,19 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {data.map((row, i) => (
+                {filteredReportData.length === 0 ? (
+                  <tr><td colSpan={4} className="px-6 py-10 text-center text-gray-500">No report data found</td></tr>
+                ) : filteredReportData.map((row, i) => (
                   <tr key={i} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="px-3 md:px-6 py-3 font-mono text-xs text-gray-300">{row.date}</td>
+                    <td className="px-3 md:px-6 py-3 font-mono text-xs text-gray-300 cursor-pointer hover:text-primary transition-colors"
+                      onClick={() => setReportFilter({ key: 'date', value: row.date })}
+                      title={`Click to show all rows where Period = "${row.date}"`}
+                      style={reportFilter?.key === 'date' && String(reportFilter.value).toLowerCase() === String(row.date).toLowerCase() ? { color: '#3B82F6' } : undefined}>{row.date}</td>
                     <td className="px-3 md:px-6 py-3 font-semibold text-white">{formatCurrency(row.revenue)}</td>
-                    <td className="px-3 md:px-6 py-3 text-gray-400">{row.count}</td>
+                    <td className="px-3 md:px-6 py-3 text-gray-400 cursor-pointer hover:text-primary transition-colors"
+                      onClick={() => setReportFilter({ key: 'count', value: row.count })}
+                      title={`Click to show all rows where Transactions = "${row.count}"`}
+                      style={reportFilter?.key === 'count' && String(reportFilter.value).toLowerCase() === String(row.count).toLowerCase() ? { color: '#3B82F6' } : undefined}>{row.count}</td>
                     <td className="px-3 md:px-6 py-3 text-gray-400">{row.count ? formatCurrency(row.revenue / row.count) : '—'}</td>
                   </tr>
                 ))}

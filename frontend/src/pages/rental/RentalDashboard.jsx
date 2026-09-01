@@ -82,6 +82,7 @@ const UtilizationGauge = ({ value }) => {
 const RentalDashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [equipmentFilter, setEquipmentFilter] = useState(null);
 
   useEffect(() => {
     const fetch = async () => {
@@ -132,11 +133,12 @@ const RentalDashboard = () => {
   }, []);
 
   const equipmentColumns = [
-    { header: 'ID', accessor: 'id' },
-    { header: 'Equipment', accessor: 'name' },
-    { header: 'Location', accessor: 'location' },
+    { header: 'ID', field: 'id', accessor: 'id' },
+    { header: 'Equipment', field: 'name', accessor: 'name' },
+    { header: 'Location', field: 'location', accessor: 'location' },
     {
       header: 'Utilization',
+      field: 'utilization',
       render: (row) => (
         <div className="flex items-center gap-2 min-w-[100px]">
           <div className="flex-1 bg-gray-700 h-1.5 rounded-full overflow-hidden">
@@ -151,6 +153,7 @@ const RentalDashboard = () => {
     },
     {
       header: 'Status',
+      field: 'status',
       render: (row) => {
         const c = { Rented: 'bg-primary/20 text-primary', Available: 'bg-healthy/20 text-healthy', Maintenance: 'bg-alert/20 text-alert' };
         return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${c[row.status] || 'bg-gray-700 text-gray-400'}`}>{row.status}</span>;
@@ -158,6 +161,7 @@ const RentalDashboard = () => {
     },
     {
       header: 'Insurance Exp.',
+      field: 'insurance_exp',
       render: (row) => {
         const days = Math.ceil((new Date(row.insurance_exp) - new Date()) / 86400000);
         return (
@@ -247,7 +251,25 @@ const RentalDashboard = () => {
       {/* Bottom Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <DataTable title="Equipment Availability" columns={equipmentColumns} data={data.equipment_list} />
+          {equipmentFilter && (
+            <div className="mb-3 flex items-center gap-2 text-xs bg-surface border border-border rounded-lg px-3 py-2 w-fit">
+              <span className="text-gray-300">
+                Showing equipment where <span className="text-primary font-medium capitalize">{equipmentFilter.key}</span> ={' '}
+                <span className="text-white font-semibold">&quot;{String(equipmentFilter.value)}&quot;</span>
+              </span>
+              <button onClick={() => setEquipmentFilter(null)} className="flex items-center gap-1 ml-1 px-2 py-1 rounded-md bg-background border border-border text-gray-300 hover:text-white hover:border-primary transition-colors">
+                Clear filter
+              </button>
+            </div>
+          )}
+          <DataTable
+            title="Equipment Availability"
+            columns={equipmentColumns}
+            data={equipmentFilter ? data.equipment_list.filter(e => String(e[equipmentFilter.key] ?? '').toLowerCase() === String(equipmentFilter.value).toLowerCase()) : data.equipment_list}
+            filterable
+            onFilter={(key, value) => setEquipmentFilter({ key, value })}
+            activeFilter={equipmentFilter}
+          />
         </div>
 
         {/* Alerts Panel */}

@@ -89,6 +89,11 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState(MOCK_USERS);
   const [loading, setLoading] = useState(true);
   const [trendPeriod, setTrendPeriod] = useState('monthly');
+  const [userFilter, setUserFilter] = useState(null);
+
+  const filteredUsers = userFilter
+    ? users.filter(u => String(u[userFilter.key] ?? '').toLowerCase() === String(userFilter.value).toLowerCase())
+    : users;
 
   const MOCK_BY_PERIOD = {
     daily: MOCK_REVENUE_DAILY,
@@ -163,6 +168,7 @@ const AdminDashboard = () => {
   const userColumns = [
     {
       header: 'User',
+      field: 'username',
       render: (row) => (
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold uppercase">
@@ -172,10 +178,11 @@ const AdminDashboard = () => {
         </div>
       )
     },
-    { header: 'Email', render: (row) => <span className="text-gray-400 text-xs">{row.email}</span> },
-    { header: 'Role', render: (row) => <span className="capitalize text-gray-300 text-xs">{row.role?.replace(/_/g, ' ')}</span> },
+    { header: 'Email', field: 'email', render: (row) => <span className="text-gray-400 text-xs">{row.email}</span> },
+    { header: 'Role', field: 'role', render: (row) => <span className="capitalize text-gray-300 text-xs">{row.role?.replace(/_/g, ' ')}</span> },
     {
       header: 'Status',
+      field: 'status',
       render: (row) => (
         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${row.status === 'Active' ? 'bg-healthy/20 text-healthy' : 'bg-gray-700 text-gray-400'}`}>
           {row.status}
@@ -312,7 +319,25 @@ const AdminDashboard = () => {
 
       {/* Users Table */}
       <div>
-        <DataTable title="System Users" columns={userColumns} data={users} />
+        {userFilter && (
+          <div className="mb-3 flex items-center gap-2 text-xs bg-surface border border-border rounded-lg px-3 py-2 w-fit">
+            <span className="text-gray-300">
+              Showing users where <span className="text-primary font-medium capitalize">{userFilter.key}</span> ={' '}
+              <span className="text-white font-semibold">&quot;{String(userFilter.value)}&quot;</span>
+            </span>
+            <button onClick={() => setUserFilter(null)} className="flex items-center gap-1 ml-1 px-2 py-1 rounded-md bg-background border border-border text-gray-300 hover:text-white hover:border-primary transition-colors">
+              Clear filter
+            </button>
+          </div>
+        )}
+        <DataTable
+          title="System Users"
+          columns={userColumns}
+          data={filteredUsers}
+          filterable
+          onFilter={(key, value) => setUserFilter({ key, value })}
+          activeFilter={userFilter}
+        />
       </div>
     </div>
   );

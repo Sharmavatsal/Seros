@@ -56,6 +56,8 @@ const MOCK_OM_DATA = {
 const OMDashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [techFilter, setTechFilter] = useState(null);
+  const [amcFilter, setAmcFilter] = useState(null);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -103,9 +105,10 @@ const OMDashboard = () => {
   }
 
   const techColumns = [
-    { header: 'Tech ID', accessor: 'id' },
+    { header: 'Tech ID', field: 'id', accessor: 'id' },
     { 
       header: 'Name', 
+      field: 'name',
       render: (row) => (
         <div className="flex items-center gap-2">
           <User size={14} className="text-gray-400" />
@@ -115,6 +118,7 @@ const OMDashboard = () => {
     },
     { 
       header: 'Active Tickets', 
+      field: 'active_tickets',
       render: (row) => (
         <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${row.active_tickets > 3 ? 'bg-alert/20 text-alert' : 'bg-primary/20 text-primary'}`}>
           {row.active_tickets} Tickets
@@ -123,6 +127,7 @@ const OMDashboard = () => {
     },
     { 
       header: 'Status', 
+      field: 'status',
       render: (row) => (
         <span className={`px-2 py-0.5 rounded text-xs font-medium ${row.status === 'On Site' ? 'bg-healthy/20 text-healthy' : 'bg-gray-700 text-gray-400'}`}>
           {row.status}
@@ -131,6 +136,7 @@ const OMDashboard = () => {
     },
     { 
       header: 'Efficiency', 
+      field: 'efficiency',
       render: (row) => (
         <div className="flex items-center space-x-2 min-w-[120px]">
           <div className="flex-1 bg-gray-700 h-2 rounded-full overflow-hidden">
@@ -143,22 +149,25 @@ const OMDashboard = () => {
   ];
 
   const amcColumns = [
-    { header: 'Client', accessor: 'client_name' },
-    { header: 'Equipment', accessor: 'equipment' },
+    { header: 'Client', field: 'client_name', accessor: 'client_name' },
+    { header: 'Equipment', field: 'equipment', accessor: 'equipment' },
     { 
       header: 'Renewal Date', 
+      field: 'end_date',
       render: (row) => (
         <span className="text-gray-300 font-mono text-xs">{row.end_date}</span>
       ) 
     },
     { 
       header: 'Contract Value', 
+      field: 'value',
       render: (row) => (
         <span className="text-white font-medium">{'\u20B9'}{row.value.toLocaleString()}</span>
       ) 
     },
     { 
       header: 'Timeline', 
+      field: 'days_remaining',
       render: (row) => {
         const isCritical = row.days_remaining <= 10;
         const isWarning = row.days_remaining <= 30;
@@ -242,10 +251,28 @@ const OMDashboard = () => {
       {/* Tables Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
-          <DataTable title="Technician Allocation & Efficiency" columns={techColumns} data={data.technician_allocation} />
+          {techFilter && (
+            <div className="mb-3 flex items-center gap-2 text-xs bg-surface border border-border rounded-lg px-3 py-2 w-fit">
+              <span className="text-gray-300">
+                Filtered: <span className="text-primary font-medium">{techFilter.key.replace(/_/g, ' ')}</span> ={' '}
+                <span className="text-white font-semibold">&quot;{String(techFilter.value)}&quot;</span>
+              </span>
+              <button onClick={() => setTechFilter(null)} className="ml-1 px-2 py-1 rounded-md bg-background border border-border text-gray-300 hover:text-white hover:border-primary transition-colors">Clear</button>
+            </div>
+          )}
+          <DataTable title="Technician Allocation & Efficiency" columns={techColumns} data={techFilter ? data.technician_allocation.filter(t => String(t[techFilter.key] ?? '').toLowerCase() === String(techFilter.value).toLowerCase()) : data.technician_allocation} filterable onFilter={(key, value) => setTechFilter({ key, value })} activeFilter={techFilter} />
         </div>
         <div>
-          <DataTable title="AMC Renewal Timeline" columns={amcColumns} data={data.amc_renewals} />
+          {amcFilter && (
+            <div className="mb-3 flex items-center gap-2 text-xs bg-surface border border-border rounded-lg px-3 py-2 w-fit">
+              <span className="text-gray-300">
+                Filtered: <span className="text-primary font-medium">{amcFilter.key.replace(/_/g, ' ')}</span> ={' '}
+                <span className="text-white font-semibold">&quot;{String(amcFilter.value)}&quot;</span>
+              </span>
+              <button onClick={() => setAmcFilter(null)} className="ml-1 px-2 py-1 rounded-md bg-background border border-border text-gray-300 hover:text-white hover:border-primary transition-colors">Clear</button>
+            </div>
+          )}
+          <DataTable title="AMC Renewal Timeline" columns={amcColumns} data={amcFilter ? data.amc_renewals.filter(a => String(a[amcFilter.key] ?? '').toLowerCase() === String(amcFilter.value).toLowerCase()) : data.amc_renewals} filterable onFilter={(key, value) => setAmcFilter({ key, value })} activeFilter={amcFilter} />
         </div>
       </div>
     </div>

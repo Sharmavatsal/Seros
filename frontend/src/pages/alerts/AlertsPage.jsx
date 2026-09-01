@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, Shield, FileText, Wrench, IndianRupee, RefreshCw, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Shield, FileText, Wrench, IndianRupee, RefreshCw, CheckCircle, X, Filter } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../store/authStore';
 import { SkeletonTable } from '../../components/ui/Skeletons';
@@ -42,7 +42,7 @@ const SeverityBadge = ({ days }) => {
   );
 };
 
-const AlertTable = ({ columns, data, emptyMessage = 'No alerts' }) => (
+const AlertTable = ({ columns, data, emptyMessage = 'No alerts', onFilter, activeField, activeValue }) => (
   <div className="overflow-x-auto">
     <table className="w-full text-sm">
       <thead>
@@ -67,11 +67,29 @@ const AlertTable = ({ columns, data, emptyMessage = 'No alerts' }) => (
         ) : (
           data.map((row, ri) => (
             <tr key={ri} className="hover:bg-white/[0.02] transition-colors">
-              {columns.map((col, ci) => (
-                <td key={ci} className="px-3 md:px-6 py-3 md:py-3.5 text-gray-300">
-                  {col.render ? col.render(row) : row[col.accessor]}
-                </td>
-              ))}
+              {columns.map((col, ci) => {
+                const field = col.field || col.accessor;
+                const raw = col.render ? null : row[col.accessor];
+                const value = col.render ? (typeof col.getFilterValue === 'function' ? col.getFilterValue(row) : row[col.accessor]) : raw;
+                const active = activeField === field && value !== undefined && value !== null && String(activeValue).toLowerCase() === String(value).toLowerCase();
+                return (
+                  <td
+                    key={ci}
+                    className="px-3 md:px-6 py-3 md:py-3.5 text-gray-300"
+                    style={active ? { color: '#3B82F6', fontWeight: 600 } : undefined}
+                  >
+                    {col.render ? (
+                      <span className="inline-block cursor-pointer transition-colors hover:text-primary" onClick={() => onFilter && value !== undefined && value !== null && value !== '' && onFilter(field, value)} title={value !== undefined && value !== null && value !== '' ? `Click to show all matching "${value}"` : undefined}>
+                        {col.render(row)}
+                      </span>
+                    ) : (
+                      <span className="inline-block cursor-pointer transition-colors hover:text-primary" onClick={() => onFilter && value !== undefined && value !== null && value !== '' && onFilter(field, value)} title={value !== undefined && value !== null && value !== '' ? `Click to show all matching "${value}"` : undefined}>
+                        {row[col.accessor]}
+                      </span>
+                    )}
+                  </td>
+                );
+              })}
             </tr>
           ))
         )}
@@ -95,6 +113,7 @@ const AlertsPage = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('equipment');
   const [refreshing, setRefreshing] = useState(false);
+  const [clickFilter, setClickFilter] = useState(null);
 
   const fetchAlerts = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -126,37 +145,37 @@ const AlertsPage = () => {
   const totalAlerts = Object.values(counts).reduce((a, b) => a + b, 0);
 
   const eqColumns = [
-    { header: 'Asset Code', accessor: 'asset_code' },
-    { header: 'Alert Type', render: (r) => <span className="px-2 py-1 rounded-full text-xs font-medium bg-warning/20 text-warning">{r.alert_type}</span> },
-    { header: 'Expiry Date', accessor: 'expiry_date' },
-    { header: 'Status', render: (r) => <SeverityBadge days={r.days_remaining} /> },
+    { header: 'Asset Code', field: 'asset_code', accessor: 'asset_code' },
+    { header: 'Alert Type', field: 'alert_type', render: (r) => <span className="px-2 py-1 rounded-full text-xs font-medium bg-warning/20 text-warning">{r.alert_type}</span>, getFilterValue: (r) => r.alert_type },
+    { header: 'Expiry Date', field: 'expiry_date', accessor: 'expiry_date' },
+    { header: 'Status', field: 'days_remaining', render: (r) => <SeverityBadge days={r.days_remaining} />, getFilterValue: (r) => r.days_remaining },
   ];
 
   const rentalColumns = [
-    { header: 'Contract No', accessor: 'contract_no' },
-    { header: 'Client', accessor: 'client_name' },
-    { header: 'Expiry Date', accessor: 'expiry_date' },
-    { header: 'Status', render: (r) => <SeverityBadge days={r.days_remaining} /> },
+    { header: 'Contract No', field: 'contract_no', accessor: 'contract_no' },
+    { header: 'Client', field: 'client_name', accessor: 'client_name' },
+    { header: 'Expiry Date', field: 'expiry_date', accessor: 'expiry_date' },
+    { header: 'Status', field: 'days_remaining', render: (r) => <SeverityBadge days={r.days_remaining} />, getFilterValue: (r) => r.days_remaining },
   ];
 
   const opsColumns = [
-    { header: 'Asset Code', accessor: 'asset_code' },
-    { header: 'Log Date', accessor: 'log_date' },
-    { header: 'Type', render: () => <span className="px-2 py-1 rounded-full text-xs bg-alert/20 text-alert">Breakdown</span> },
-    { header: 'Remarks', accessor: 'remarks' },
+    { header: 'Asset Code', field: 'asset_code', accessor: 'asset_code' },
+    { header: 'Log Date', field: 'log_date', accessor: 'log_date' },
+    { header: 'Type', field: 'type', render: () => <span className="px-2 py-1 rounded-full text-xs bg-alert/20 text-alert">Breakdown</span>, getFilterValue: () => 'Breakdown' },
+    { header: 'Remarks', field: 'remarks', accessor: 'remarks' },
   ];
 
   const omColumns = [
-    { header: 'Alert Type', render: (r) => <span className={`px-2 py-1 rounded-full text-xs font-medium ${r.alert_type === 'SLA Breach' ? 'bg-alert/20 text-alert' : 'bg-warning/20 text-warning'}`}>{r.alert_type}</span> },
-    { header: 'Details', accessor: 'details' },
-    { header: 'Reference ID', accessor: 'reference_id' },
+    { header: 'Alert Type', field: 'alert_type', render: (r) => <span className={`px-2 py-1 rounded-full text-xs font-medium ${r.alert_type === 'SLA Breach' ? 'bg-alert/20 text-alert' : 'bg-warning/20 text-warning'}`}>{r.alert_type}</span>, getFilterValue: (r) => r.alert_type },
+    { header: 'Details', field: 'details', accessor: 'details' },
+    { header: 'Reference ID', field: 'reference_id', accessor: 'reference_id' },
   ];
 
   const financeColumns = [
-    { header: 'Invoice ID', accessor: 'invoice_id' },
-    { header: 'Vertical', render: (r) => <span className="capitalize text-gray-300">{r.vertical}</span> },
-    { header: 'Amount', render: (r) => <span className="font-semibold text-white">\u20B9{Number(r.amount).toLocaleString()}</span> },
-    { header: 'Overdue', render: (r) => <span className="px-2 py-0.5 rounded-full text-xs bg-alert/20 text-alert font-medium">{r.days_overdue} days</span> },
+    { header: 'Invoice ID', field: 'invoice_id', accessor: 'invoice_id' },
+    { header: 'Vertical', field: 'vertical', render: (r) => <span className="capitalize text-gray-300">{r.vertical}</span>, getFilterValue: (r) => r.vertical },
+    { header: 'Amount', field: 'amount', render: (r) => <span className="font-semibold text-white">\u20B9{Number(r.amount).toLocaleString()}</span>, getFilterValue: (r) => r.amount },
+    { header: 'Overdue', field: 'days_overdue', render: (r) => <span className="px-2 py-0.5 rounded-full text-xs bg-alert/20 text-alert font-medium">{r.days_overdue} days</span>, getFilterValue: (r) => r.days_overdue },
   ];
 
   const tableConfig = {
@@ -166,6 +185,25 @@ const AlertsPage = () => {
     om: { columns: omColumns, data: alerts?.om_alerts || [], empty: 'No O&M alerts — SLA and PM on track' },
     finance: { columns: financeColumns, data: alerts?.finance_alerts || [], empty: 'No finance alerts — all invoices current' },
   };
+
+  const resolveValue = (col, row) =>
+    col.getFilterValue ? col.getFilterValue(row) : row[col.field || col.accessor];
+
+  const visibleData = clickFilter
+    ? tableConfig[activeTab].data.filter((row) => {
+        const col = tableConfig[activeTab].columns.find((c) => (c.field || c.accessor) === clickFilter.field);
+        if (!col) return true;
+        const raw = resolveValue(col, row);
+        const v = String(clickFilter.value).toLowerCase();
+        return String(raw ?? '').toLowerCase() === v || String(raw ?? '').toLowerCase().includes(v);
+      })
+    : tableConfig[activeTab].data;
+
+  const handleFilter = (field, value) => {
+    if (value === undefined || value === null || value === '') return;
+    setClickFilter({ field, value });
+  };
+  const clearFilter = () => setClickFilter(null);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -198,7 +236,7 @@ const AlertsPage = () => {
           return (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => { setActiveTab(tab.key); setClickFilter(null); }}
               className={`flex flex-col items-start p-3 md:p-4 rounded-lg border transition-all ${
                 activeTab === tab.key
                   ? 'bg-primary/10 border-primary/40'
@@ -218,7 +256,7 @@ const AlertsPage = () => {
         {visibleTabs.map((tab) => (
           <button
             key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
+            onClick={() => { setActiveTab(tab.key); setClickFilter(null); }}
             className={`flex items-center gap-1.5 px-2.5 md:px-3 py-1.5 rounded-md text-xs md:text-sm font-medium transition-all ${
               activeTab === tab.key ? 'bg-primary text-white' : 'text-gray-400 hover:text-white'
             }`}
@@ -236,19 +274,36 @@ const AlertsPage = () => {
 
       {/* Table */}
       <div className="bg-surface border border-border rounded-lg overflow-hidden">
-        <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border">
+        <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border flex items-center justify-between">
           <h3 className="text-sm md:text-base font-medium text-white capitalize">
             {TABS.find(t => t.key === activeTab)?.label} Alerts
           </h3>
+          {clickFilter ? (
+            <button onClick={clearFilter} className="flex items-center gap-1 px-2 py-1 rounded-md bg-background border border-border text-xs text-gray-300 hover:text-white hover:border-primary transition-colors">
+              <X size={12} /> Clear filter
+            </button>
+          ) : (
+            <span className="text-xs text-gray-500">{visibleData.length} records</span>
+          )}
         </div>
+        {clickFilter && (
+          <div className="px-4 md:px-6 py-2 bg-background/30 border-b border-border flex items-center gap-2 text-xs text-gray-300">
+            <Filter size={13} className="text-primary" />
+            Showing all where <span className="text-primary font-medium">{clickFilter.field.replace(/_/g, ' ')}</span> ={' '}
+            <span className="text-white font-semibold">&quot;{String(clickFilter.value)}&quot;</span>
+          </div>
+        )}
         {loading ? (
           <div className="p-6"><SkeletonTable rows={4} cols={4} /></div>
         ) : (
           tableConfig[activeTab] && (
             <AlertTable
               columns={tableConfig[activeTab].columns}
-              data={tableConfig[activeTab].data}
+              data={visibleData}
               emptyMessage={tableConfig[activeTab].empty}
+              onFilter={handleFilter}
+              activeField={clickFilter?.field}
+              activeValue={clickFilter?.value}
             />
           )
         )}

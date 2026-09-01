@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, X, Search, Edit2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Plus, X, Search, Edit2, ToggleLeft, ToggleRight, Filter } from 'lucide-react';
 import api from '../../lib/axios';
 import { useToast } from '../../components/ui/ToastContext';
 import { SkeletonTable } from '../../components/ui/Skeletons';
@@ -159,6 +159,7 @@ const UserManagement = () => {
   const [roleFilter, setRoleFilter] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [editUser, setEditUser] = useState(null);
+  const [clickFilter, setClickFilter] = useState(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -191,8 +192,21 @@ const UserManagement = () => {
     const q = search.toLowerCase();
     const matchSearch = !search || u.username?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q);
     const matchRole = !roleFilter || u.role === roleFilter;
-    return matchSearch && matchRole;
+    const matchClick = !clickFilter || String(u[clickFilter.key]).toLowerCase() === String(clickFilter.value).toLowerCase();
+    return matchSearch && matchRole && matchClick;
   });
+
+  const handleFilter = (key, value) => {
+    if (value === undefined || value === null || value === '') return;
+    setClickFilter({ key, value });
+    if (key === 'role') setRoleFilter(value);
+  };
+
+  const clearFilter = () => {
+    setClickFilter(null);
+    setRoleFilter('');
+    setSearch('');
+  }; 
 
   const roleCounts = {
     all: users.length,
@@ -244,6 +258,19 @@ const UserManagement = () => {
         />
       </div>
 
+      {clickFilter && (
+        <div className="flex items-center gap-2 text-xs bg-surface border border-border rounded-lg px-3 py-2 w-fit">
+          <Filter size={13} className="text-primary" />
+          <span className="text-gray-300">
+            Showing all users where <span className="text-primary font-medium capitalize">{clickFilter.key}</span> ={' '}
+            <span className="text-white font-semibold">&quot;{String(clickFilter.value)}&quot;</span>
+          </span>
+          <button onClick={clearFilter} className="flex items-center gap-1 ml-1 px-2 py-1 rounded-md bg-background border border-border text-gray-300 hover:text-white hover:border-primary transition-colors">
+            <X size={12} /> Clear filter
+          </button>
+        </div>
+      )}
+
       {/* Table */}
       {loading ? (
         <SkeletonTable rows={5} cols={5} />
@@ -269,20 +296,39 @@ const UserManagement = () => {
                   const rc = ROLE_CONFIG[u.role] || { label: u.role, color: 'bg-gray-700 text-gray-400 border-gray-600' };
                   return (
                     <tr key={u.id} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
+                      <td
+                        className="px-6 py-4 cursor-pointer"
+                        onClick={() => handleFilter('username', u.username)}
+                        title="Click to show all users with this name"
+                      >
+                        <div className="flex items-center gap-3" style={clickFilter?.key === 'username' && String(clickFilter.value).toLowerCase() === String(u.username).toLowerCase() ? { color: '#3B82F6' } : undefined}>
                           <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold uppercase text-sm shrink-0">
                             {u.username?.charAt(0) || '?'}
                           </div>
-                          <span className="text-white font-medium">{u.username}</span>
+                          <span className="text-white font-medium hover:text-primary transition-colors">{u.username}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-gray-400">{u.email}</td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${rc.color}`}>{rc.label}</span>
+                      <td className="px-6 py-4 text-gray-400 cursor-pointer hover:text-primary transition-colors"
+                        onClick={() => handleFilter('email', u.email)}
+                        title="Click to show all users with this email"
+                        style={clickFilter?.key === 'email' && String(clickFilter.value).toLowerCase() === String(u.email).toLowerCase() ? { color: '#3B82F6' } : undefined}>
+                        {u.email}
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`flex items-center gap-1.5 w-fit px-2 py-0.5 rounded-full text-xs font-medium ${u.status === 'Active' ? 'bg-healthy/20 text-healthy' : 'bg-gray-700/50 text-gray-500'}`}>
+                        <span
+                          onClick={() => handleFilter('role', u.role)}
+                          className={`px-2.5 py-1 rounded-full text-xs font-medium border ${rc.color} cursor-pointer transition-opacity hover:opacity-80`}
+                          style={clickFilter?.key === 'role' && String(clickFilter.value).toLowerCase() === String(u.role).toLowerCase() ? { outline: '1px solid #3B82F6' } : undefined}
+                          title="Click to show all users with this role"
+                        >{rc.label}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          onClick={() => handleFilter('status', u.status)}
+                          className={`flex items-center gap-1.5 w-fit px-2 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-opacity hover:opacity-80 ${u.status === 'Active' ? 'bg-healthy/20 text-healthy' : 'bg-gray-700/50 text-gray-500'}`}
+                          style={clickFilter?.key === 'status' && String(clickFilter.value).toLowerCase() === String(u.status).toLowerCase() ? { outline: '1px solid #3B82F6' } : undefined}
+                          title="Click to show all users with this status"
+                        >
                           <span className={`w-1.5 h-1.5 rounded-full ${u.status === 'Active' ? 'bg-healthy' : 'bg-gray-600'}`} />
                           {u.status}
                         </span>

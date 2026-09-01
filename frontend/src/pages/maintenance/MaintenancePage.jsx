@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Wrench, Calendar, AlertTriangle, CheckCircle, Clock, Activity } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Wrench, Calendar, AlertTriangle, CheckCircle, Clock, Activity, X, Filter } from 'lucide-react';
 import api from '../../lib/axios';
 import { SkeletonKPIRow, SkeletonTable } from '../../components/ui/Skeletons';
 import MetricCard from '../../components/ui/MetricCard';
@@ -45,6 +45,7 @@ const MaintenancePage = () => {
   const [schedules, setSchedules] = useState([]);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [clickFilter, setClickFilter] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -78,6 +79,45 @@ const MaintenancePage = () => {
   const totalCost = logs.reduce((sum, l) => sum + (l.cost || 0), 0);
   const avgCost = logs.length ? (totalCost / logs.length).toFixed(0) : 0;
 
+  const getStatusLabel = (s) => {
+    if (s.status === 'overdue') return 'Overdue';
+    const today = new Date();
+    const due = s.next_due_date ? new Date(s.next_due_date) : null;
+    const daysUntil = due ? Math.ceil((due - today) / 86400000) : null;
+    if (daysUntil !== null && daysUntil < 0) return 'Overdue';
+    if (daysUntil !== null && daysUntil <= 14) return 'Due Soon';
+    return 'On Track';
+  };
+
+  const clearFilter = () => setClickFilter(null);
+  const handleFilter = (field, value) => {
+    if (value === undefined || value === null || value === '') return;
+    setClickFilter({ field, value });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const filteredSchedules = useMemo(() => {
+    if (!clickFilter) return schedules;
+    const { field, value } = clickFilter;
+    const v = String(value).toLowerCase();
+    return schedules.filter(s => {
+      if (field === 'status') return getStatusLabel(s).toLowerCase() === v;
+      if (field === 'frequency_days') return String(s.frequency_days ?? '').toLowerCase() === v;
+      const raw = s[field];
+      return String(raw ?? '').toLowerCase().includes(v);
+    });
+  }, [schedules, clickFilter]);
+
+  const filteredLogs = useMemo(() => {
+    if (!clickFilter) return logs;
+    const { field, value } = clickFilter;
+    const v = String(value).toLowerCase();
+    return logs.filter(l => String(l[field] ?? '').toLowerCase().includes(v));
+  }, [logs, clickFilter]);
+
+  const isSchedActive = (field, value) => clickFilter && clickFilter.field === field && String(clickFilter.value).toLowerCase() === String(value).toLowerCase();
+  const isLogActive = (field, value) => clickFilter && clickFilter.field === field && String(clickFilter.value).toLowerCase() === String(value).toLowerCase();
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
@@ -103,7 +143,7 @@ const MaintenancePage = () => {
         {['schedules', 'logs'].map((t) => (
           <button
             key={t}
-            onClick={() => setActiveTab(t)}
+            onClick={() => { setActiveTab(t); setClickFilter(null); }}
             className={`flex items-center gap-1.5 px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-medium capitalize transition-all ${activeTab === t ? 'bg-primary text-white' : 'text-gray-400 hover:text-white'}`}
           >
             {t === 'schedules' ? <Calendar size={13} /> : <Wrench size={13} />}
@@ -121,8 +161,22 @@ const MaintenancePage = () => {
             <div className="bg-surface border border-border rounded-lg overflow-hidden">
               <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border flex items-center justify-between">
                 <h3 className="text-sm md:text-base font-medium text-white">Preventive Maintenance Schedules</h3>
-                <span className="text-xs text-gray-500">{schedules.length} schedules</span>
+                <div className="flex items-center gap-2">
+                  {clickFilter && (
+                    <button onClick={clearFilter} className="flex items-center gap-1 px-2 py-1 rounded-md bg-background border border-border text-xs text-gray-300 hover:text-white hover:border-primary transition-colors">
+                      <X size={12} /> Clear filter
+                    </button>
+                  )}
+                  <span className="text-xs text-gray-500">{filteredSchedules.length} schedules</span>
+                </div>
               </div>
+              {clickFilter && (
+                <div className="px-4 md:px-6 py-2 bg-background/30 border-b border-border flex items-center gap-2 text-xs text-gray-300">
+                  <Filter size={13} className="text-primary" />
+                  Showing all <span className="text-primary font-medium">{clickFilter.field.replace(/_/g, ' ')}</span> ={' '}
+                  <span className="text-white font-semibold">&quot;{String(clickFilter.value)}&quot;</span>
+                </div>
+              )}
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -133,14 +187,25 @@ const MaintenancePage = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {schedules.map((s, i) => (
+                    {filteredSchedules.length === 0 ? (
+                      <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-500">No schedules found</td></tr>
+                    ) : filteredSchedules.map((s, i) => (
                       <tr key={s.id || i} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="px-3 md:px-6 py-3 md:py-3.5 font-mono text-xs text-gray-300">{s.asset_id}</td>
-                        <td className="px-3 md:px-6 py-3 md:py-3.5 text-white">{s.maintenance_type}</td>
-                        <td className="px-3 md:px-6 py-3 md:py-3.5 text-gray-400">Every {s.frequency_days}d</td>
-                        <td className="px-3 md:px-6 py-3 md:py-3.5 text-gray-400">{s.last_completed_date || '—'}</td>
-                        <td className="px-3 md:px-6 py-3 md:py-3.5 text-gray-300 font-medium">{s.next_due_date}</td>
-                        <td className="px-3 md:px-6 py-3 md:py-3.5"><StatusBadge status={s.status} nextDue={s.next_due_date} /></td>
+                        <td className="px-3 md:px-6 py-3 md:py-3.5 font-mono text-xs text-gray-300 cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => handleFilter('asset_id', s.asset_id)} title="Click to show all matching asset" style={isSchedActive('asset_id', s.asset_id) ? { color: '#3B82F6' } : undefined}>{s.asset_id}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-3.5 text-white cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => handleFilter('maintenance_type', s.maintenance_type)} title="Click to show all matching type" style={isSchedActive('maintenance_type', s.maintenance_type) ? { color: '#3B82F6' } : undefined}>{s.maintenance_type}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-3.5 text-gray-400 cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => handleFilter('frequency_days', s.frequency_days)} title="Click to show all matching frequency" style={isSchedActive('frequency_days', s.frequency_days) ? { color: '#3B82F6' } : undefined}>Every {s.frequency_days}d</td>
+                        <td className="px-3 md:px-6 py-3 md:py-3.5 text-gray-400 cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => handleFilter('last_completed_date', s.last_completed_date)} title="Click to show all matching date" style={isSchedActive('last_completed_date', s.last_completed_date) ? { color: '#3B82F6' } : undefined}>{s.last_completed_date || '—'}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-3.5 text-gray-300 font-medium cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => handleFilter('next_due_date', s.next_due_date)} title="Click to show all matching date" style={isSchedActive('next_due_date', s.next_due_date) ? { color: '#3B82F6' } : undefined}>{s.next_due_date}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-3.5">
+                          <div onClick={() => handleFilter('status', getStatusLabel(s))} title="Click to show all matching status" className="inline-block cursor-pointer" style={clickFilter?.field === 'status' && String(clickFilter.value).toLowerCase() === getStatusLabel(s).toLowerCase() ? { outline: '1px solid #3B82F6', borderRadius: '9999px' } : undefined}>
+                            <StatusBadge status={s.status} nextDue={s.next_due_date} />
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -153,8 +218,22 @@ const MaintenancePage = () => {
             <div className="bg-surface border border-border rounded-lg overflow-hidden">
               <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border flex items-center justify-between">
                 <h3 className="text-sm md:text-base font-medium text-white">Service & Breakdown Logs</h3>
-                <span className="text-xs text-gray-500">{logs.length} records</span>
+                <div className="flex items-center gap-2">
+                  {clickFilter && (
+                    <button onClick={clearFilter} className="flex items-center gap-1 px-2 py-1 rounded-md bg-background border border-border text-xs text-gray-300 hover:text-white hover:border-primary transition-colors">
+                      <X size={12} /> Clear filter
+                    </button>
+                  )}
+                  <span className="text-xs text-gray-500">{filteredLogs.length} records</span>
+                </div>
               </div>
+              {clickFilter && (
+                <div className="px-4 md:px-6 py-2 bg-background/30 border-b border-border flex items-center gap-2 text-xs text-gray-300">
+                  <Filter size={13} className="text-primary" />
+                  Showing all <span className="text-primary font-medium">{clickFilter.field.replace(/_/g, ' ')}</span> ={' '}
+                  <span className="text-white font-semibold">&quot;{String(clickFilter.value)}&quot;</span>
+                </div>
+              )}
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -165,14 +244,21 @@ const MaintenancePage = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {logs.map((l, i) => (
+                    {filteredLogs.length === 0 ? (
+                      <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-500">No logs found</td></tr>
+                    ) : filteredLogs.map((l, i) => (
                       <tr key={l.id || i} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="px-3 md:px-6 py-3 md:py-3.5 font-mono text-xs text-gray-400">{l.id}</td>
-                        <td className="px-3 md:px-6 py-3 md:py-3.5 font-mono text-xs text-gray-300">{l.asset_id}</td>
-                        <td className="px-3 md:px-6 py-3 md:py-3.5 text-gray-300 max-w-[120px] md:max-w-[200px] truncate">{l.action_taken}</td>
-                        <td className="px-3 md:px-6 py-3 md:py-3.5 text-gray-400 max-w-[100px] md:max-w-[180px] truncate">{l.parts_replaced || '—'}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-3.5 font-mono text-xs text-gray-400 cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => handleFilter('id', l.id)} title="Click to show all matching log" style={isLogActive('id', l.id) ? { color: '#3B82F6' } : undefined}>{l.id}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-3.5 font-mono text-xs text-gray-300 cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => handleFilter('asset_id', l.asset_id)} title="Click to show all matching asset" style={isLogActive('asset_id', l.asset_id) ? { color: '#3B82F6' } : undefined}>{l.asset_id}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-3.5 text-gray-300 max-w-[120px] md:max-w-[200px] truncate cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => handleFilter('action_taken', l.action_taken)} title="Click to show all matching action" style={isLogActive('action_taken', l.action_taken) ? { color: '#3B82F6' } : undefined}>{l.action_taken}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-3.5 text-gray-400 max-w-[100px] md:max-w-[180px] truncate cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => handleFilter('parts_replaced', l.parts_replaced)} title="Click to show all matching parts" style={isLogActive('parts_replaced', l.parts_replaced) ? { color: '#3B82F6' } : undefined}>{l.parts_replaced || '—'}</td>
                         <td className="px-3 md:px-6 py-3 md:py-3.5 font-semibold text-white">{fmtCost(l.cost)}</td>
-                        <td className="px-3 md:px-6 py-3 md:py-3.5 text-gray-400">{l.service_date || l.date_completed?.split('T')[0] || '—'}</td>
+                        <td className="px-3 md:px-6 py-3 md:py-3.5 text-gray-400 cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => handleFilter('service_date', l.service_date || l.date_completed?.split('T')[0])} title="Click to show all matching date" style={isLogActive('service_date', l.service_date || l.date_completed?.split('T')[0]) ? { color: '#3B82F6' } : undefined}>{l.service_date || l.date_completed?.split('T')[0] || '—'}</td>
                       </tr>
                     ))}
                   </tbody>
