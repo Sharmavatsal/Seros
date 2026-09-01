@@ -1,23 +1,30 @@
+import { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from './components/layout/MainLayout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { ToastProvider } from './components/ui/ToastContext';
 import Login from './pages/Login';
 
-import AdminDashboard from './pages/admin/AdminDashboard';
-import UserManagement from './pages/admin/UserManagement';
-import DataUpload from './pages/admin/DataUpload';
-import RentalDashboard from './pages/rental/RentalDashboard';
-import EquipmentInventory from './pages/rental/EquipmentInventory';
-import ActiveRentals from './pages/rental/ActiveRentals';
-import PreRentalInspections from './pages/rental/PreRentalInspections';
-import PilingDashboard from './pages/piling/PilingDashboard';
-import OMDashboard from './pages/om/OMDashboard';
-import FinancePage from './pages/finance/FinancePage';
-import ReportsPage from './pages/reports/ReportsPage';
-import AlertsPage from './pages/alerts/AlertsPage';
-import MaintenancePage from './pages/maintenance/MaintenancePage';
-import Settings from './pages/settings/Settings';
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const UserManagement = lazy(() => import('./pages/admin/UserManagement'));
+const DataUpload = lazy(() => import('./pages/admin/DataUpload'));
+const RentalDashboard = lazy(() => import('./pages/rental/RentalDashboard'));
+const EquipmentInventory = lazy(() => import('./pages/rental/EquipmentInventory'));
+const ActiveRentals = lazy(() => import('./pages/rental/ActiveRentals'));
+const PreRentalInspections = lazy(() => import('./pages/rental/PreRentalInspections'));
+const PilingDashboard = lazy(() => import('./pages/piling/PilingDashboard'));
+const OMDashboard = lazy(() => import('./pages/om/OMDashboard'));
+const FinancePage = lazy(() => import('./pages/finance/FinancePage'));
+const ReportsPage = lazy(() => import('./pages/reports/ReportsPage'));
+const AlertsPage = lazy(() => import('./pages/alerts/AlertsPage'));
+const MaintenancePage = lazy(() => import('./pages/maintenance/MaintenancePage'));
+const Settings = lazy(() => import('./pages/settings/Settings'));
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center w-full h-full min-h-[50vh]">
+    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 
 const Unauthorized = () => (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -36,6 +43,7 @@ function App() {
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <ToastProvider>
+        <Suspense fallback={<PageLoader />}>
         <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
@@ -104,6 +112,7 @@ function App() {
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+        </Suspense>
       </ToastProvider>
     </Router>
   );
